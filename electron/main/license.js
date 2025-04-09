@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const fetch = require('node-fetch');
 
 // Default API endpoint as fallback
-const DEFAULT_API_ENDPOINT = 'https://social-scraper-buidlwithme.replit.app';
+const DEFAULT_API_ENDPOINT = 'https://scrapenet.ai';
 
 class LicenseManager {
     constructor() {
