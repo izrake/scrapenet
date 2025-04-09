@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Twitter Scraper - License Activation</title>
+    <link rel="stylesheet" href="./css/tailwind.css">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #FF90E8; /* Neo-brutalism pink */
+            color: #000000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 1rem;
+            border-bottom: 2px solid #000000;
+        }
+
+        .header h1 {
+            font-weight: 800;
+            font-size: 1.5rem;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .license-container {
+            background-color: #ffffff;
+            border: 4px solid #000000;
+            border-radius: 1rem;
+            box-shadow: 8px 8px 0 #000000;
+            padding: 2rem;
+            width: 100%;
+            max-width: 600px;
+            transform: rotate(-1deg);
+            transition: transform 0.2s ease;
+        }
+
+        .license-container:hover {
+            transform: rotate(0deg) translateY(-4px);
+        }
+
+        .title {
+            color: #000000;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .label {
+            display: block;
+            color: #000000;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .input {
+            width: 100%;
+            padding: 1rem;
+            background-color: #F5F5F5;
+            border: 3px solid #000000;
+            border-radius: 0.5rem;
+            color: #000000;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-shadow: 4px 4px 0 #000000;
+        }
+
+        .input:focus {
+            outline: none;
+            background-color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 0 #000000;
+        }
+
+        .button {
+            width: 100%;
+            padding: 1rem;
+            background-color: #00FF00; /* Neo-brutalism green */
+            color: #000000;
+            border: 3px solid #000000;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 4px 4px 0 #000000;
+            text-transform: uppercase;
+            margin-top: 1rem;
+        }
+
+        .button:hover {
+            background-color: #00DD00;
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 0 #000000;
+        }
+
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 2px 2px 0 #000000;
+        }
+
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 2px 2px 0 #000000;
+        }
+
+        .error-message {
+            color: #FF0000;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 1rem;
+            background-color: #FFE5E5;
+            border: 3px solid #FF0000;
+            border-radius: 0.5rem;
+        }
+
+        .info-text {
+            color: #666666;
+            font-size: 1rem;
+            text-align: center;
+            margin-top: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .logo {
+            width: 120px;
+            height: auto;
+            margin: 0 auto 2rem;
+            display: block;
+            transform: rotate(-3deg);
+            transition: transform 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: rotate(3deg);
+        }
+
+        /* Fun elements */
+        .deco-circle {
+            position: fixed;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid #000000;
+            z-index: -1;
+        }
+
+        .deco-circle-1 {
+            top: 10%;
+            left: 10%;
+            background-color: #FFD700;
+            transform: rotate(15deg);
+        }
+
+        .deco-circle-2 {
+            bottom: 10%;
+            right: 10%;
+            background-color: #00FFFF;
+            transform: rotate(-15deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Decorative elements -->
+    <div class="deco-circle deco-circle-1"></div>
+    <div class="deco-circle deco-circle-2"></div>
+
+    <div class="main-content">
+        <div class="license-container">
+            <img src="./assets/logo.png" alt="Scrapenet Logo" class="logo">
+            <h2 class="title">License Activation</h2>
+            <form id="licenseForm">
+                <div class="form-group">
+                    <label for="licenseKey" class="label">License Key</label>
+                    <input type="text" 
+                           id="licenseKey" 
+                           name="licenseKey" 
+                           class="input"
+                           required 
+                           placeholder="Enter your license key"
+                           pattern="[A-Za-z0-9]{32}"
+                           title="License key should be 32 characters long">
+                </div>
+                <button type="submit" class="button">Activate License</button>
+            </form>
+            <div id="errorMessage" class="error-message"></div>
+            <p class="info-text">
+                Enter your license key to activate Twitter Scraper.<br>
+                Don't have a license? Contact support to purchase one.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('licenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const licenseKey = document.getElementById('licenseKey').value;
+            const errorMessage = document.getElementById('errorMessage');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                // Disable button and show loading state
+                submitButton.disabled = true;
+                submitButton.textContent = 'Activating...';
+                errorMessage.style.display = 'none';
+                
+                const result = await window.licenseAPI.activateLicense(licenseKey);
+                if (result.success) {
+                    submitButton.textContent = 'License Activated!';
+                    submitButton.style.backgroundColor = '#00FF00';
+                    await window.licenseAPI.notifyActivation();
+                } else {
+                    errorMessage.textContent = result.message || 'Invalid license key';
+                    errorMessage.style.display = 'block';
+                    submitButton.textContent = 'Activate License';
+                    submitButton.disabled = false;
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error activating license. Please try again.';
+                errorMessage.style.display = 'block';
+                submitButton.textContent = 'Activate License';
+                submitButton.disabled = false;
+            }
+        });
+
+        // Remove the input validation for TWITTER- prefix
+        const licenseInput = document.getElementById('licenseKey');
+        licenseInput.addEventListener('input', (e) => {
+            const value = e.target.value;
+            // Only allow alphanumeric characters
+            e.target.value = value.replace(/[^A-Za-z0-9]/g, '');
+        });
+    </script>
+</body>
+</html> 

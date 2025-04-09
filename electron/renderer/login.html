@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Scraper - Login</title> 
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+            <div>
+                <p class="mt-2 text-center text-sm text-gray-600">
+                    Automated Twitter Scraping Service
+                </p>
+            </div>
+
+            <div class="mt-8 space-y-6">
+                <div id="statusSection" class="rounded-md bg-gray-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg id="statusIcon" class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 id="statusTitle" class="text-sm font-medium text-gray-800">
+                                Backend Service Status
+                            </h3>
+                            <div id="statusMessage" class="mt-2 text-sm text-gray-500">
+                                Checking connection to scraping service...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loginError" class="hidden rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p id="loginErrorMessage" class="text-sm font-medium text-red-800">
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <button id="startScrapingBtn" class="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Start Scraping Service
+                    </button>
+                    <button id="openApiDocs" class="w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        View API Documentation
+                    </button>
+                </div>
+
+                <div class="text-sm text-center text-gray-500">
+                    <p>API Documentation:</p>
+                    <code class="text-sm bg-gray-100 px-2 py-1 rounded">http://localhost:8000/docs</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Status update function
+        async function updateStatus() {
+            try {
+                const status = await window.api.checkTwitterStatus();
+                const statusIcon = document.getElementById('statusIcon');
+                const statusTitle = document.getElementById('statusTitle');
+                const statusMessage = document.getElementById('statusMessage');
+                const startScrapingBtn = document.getElementById('startScrapingBtn');
+
+                if (status.status === 'ready') {
+                    statusIcon.classList.remove('text-gray-400', 'text-red-400');
+                    statusIcon.classList.add('text-green-400');
+                    statusTitle.textContent = 'Service Ready';
+                    statusMessage.textContent = status.message;
+                    startScrapingBtn.textContent = 'Service Running';
+                    startScrapingBtn.disabled = true;
+                    startScrapingBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    startScrapingBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                } else {
+                    statusIcon.classList.remove('text-gray-400', 'text-green-400');
+                    statusIcon.classList.add('text-blue-400');
+                    statusTitle.textContent = 'Service Not Ready';
+                    statusMessage.textContent = status.message;
+                }
+            } catch (error) {
+                console.error('Failed to check status:', error);
+            }
+        }
+
+        // Button handlers
+        document.getElementById('startScrapingBtn').addEventListener('click', async () => {
+            try {
+                await window.api.startTwitterAuth();
+            } catch (error) {
+                const loginError = document.getElementById('loginError');
+                const loginErrorMessage = document.getElementById('loginErrorMessage');
+                loginError.classList.remove('hidden');
+                loginErrorMessage.textContent = error.message || 'Failed to start scraping service';
+            }
+        });
+
+        document.getElementById('openApiDocs').addEventListener('click', () => {
+            window.open('http://localhost:8000/docs', '_blank');
+        });
+
+        // Check status periodically
+        updateStatus();
+        setInterval(updateStatus, 5000);
+
+        // Listen for status updates
+        window.api.onStatusUpdate((message) => {
+            document.getElementById('statusMessage').textContent = message;
+        });
+
+        // Listen for Twitter auth completion
+        window.api.onTwitterAuthComplete((success) => {
+            if (success) {
+                updateStatus();
+            }
+        });
+    </script>
+</body>
+</html> 
