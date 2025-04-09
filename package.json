@@ -62,8 +62,7 @@
       "buildResources": "build"
     },
     "files": [
-      "electron/main/**/*",
-      "electron/renderer/**/*",
+      "electron/**/*",
       "package.json",
       ".env.example",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
@@ -74,14 +73,21 @@
     ],
     "asar": true,
     "asarUnpack": [
-      "node_modules/playwright/**/*"
+      "node_modules/playwright/**/*",
+      "electron/preload/**/*"
     ],
     "extraResources": [],
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64"]
+        }
       ],
       "icon": "build/icon.icns",
       "hardenedRuntime": true,
