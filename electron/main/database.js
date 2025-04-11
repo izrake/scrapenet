@@ -40,15 +40,40 @@ class TweetDatabase {
         });
     }
 
+    async ensureConnection() {
+        if (!this.shareData) {
+            return true;
+        }
+
+        if (!this.isConnected) {
+            debugLog('No active connection, initializing...');
+            await this.initialize();
+        } else {
+            try {
+                // Test the connection
+                await this.db.command({ ping: 1 });
+                debugLog('Connection verified');
+            } catch (error) {
+                debugLog('Connection test failed, reinitializing...', error);
+                this.isConnected = false;
+                await this.initialize();
+            }
+        }
+    }
+
     async initialize() {
         try {
-            debugLog('Initializing database connection...');
+            if (!this.shareData) {
+                debugLog('Data sharing is disabled, skipping MongoDB initialization');
+                return true;
+            }
             
             if (this.isConnected) {
                 debugLog('Already connected to database');
                 return true;
             }
 
+            debugLog('Initializing database connection...');
             debugLog('Connecting to MongoDB...', config.mongodb.uri);
             this.client = new MongoClient(config.mongodb.uri, config.mongodb.options);
             await this.client.connect();
@@ -77,28 +102,6 @@ class TweetDatabase {
             debugLog('Database initialization failed:', error);
             this.isConnected = false;
             throw error;
-        }
-    }
-
-    async ensureConnection() {
-
-        if(!this.shareData) {
-            return true;
-        }
-
-        if (!this.isConnected) {
-            debugLog('No active connection, initializing...');
-            await this.initialize();
-        } else {
-            try {
-                // Test the connection
-                await this.db.command({ ping: 1 });
-                debugLog('Connection verified');
-            } catch (error) {
-                debugLog('Connection test failed, reinitializing...', error);
-                this.isConnected = false;
-                await this.initialize();
-            }
         }
     }
 
@@ -825,6 +828,21 @@ class TweetDatabase {
 
     async checkData() {
         try {
+            if (!this.shareData) {
+                // For local storage, count files in the local data directory
+                const files = await fsPromises.readdir(this.localDataDir);
+                const sessionFiles = files.filter(file => file.startsWith('session_') && file.endsWith('.json'));
+                
+                return {
+                    [this.collections.SESSIONS]: sessionFiles.length,
+                    [this.collections.TWEETS]: sessionFiles.reduce((total, file) => {
+                        const sessionData = JSON.parse(fs.readFileSync(path.join(this.localDataDir, file), 'utf8'));
+                        return total + (sessionData.tweets?.length || 0);
+                    }, 0),
+                    [this.collections.PROFILES]: 0 // Profiles are not stored locally
+                };
+            }
+
             if (!this.isConnected) {
                 await this.initialize();
             }
@@ -846,16 +864,17 @@ class TweetDatabase {
 
     async clearTweets() {
         try {
+            if (!this.shareData) {
+                return true;
+            }
+
             if (!this.isConnected) {
                 await this.initialize();
             }
 
-            const collections = [this.collections.SESSIONS, this.collections.TWEETS, this.collections.PROFILES];
-            for (const collection of collections) {
-                await this.db.collection(collection).deleteMany({});
-            }
-
-            console.log('All collections cleared');
+            const result = await this.db.collection(this.collections.TWEETS).deleteMany({});
+            console.log('Cleared tweets:', result.deletedCount);
+            return result.deletedCount;
         } catch (error) {
             console.error('Error clearing tweets:', error);
             throw error;

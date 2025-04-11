@@ -660,7 +660,7 @@ class TwitterScraper {
 
             console.log(`Attempting to extract ${targetCount} unique tweets...`);
 
-            while (uniqueTweets.size < targetCount && scrollAttempts < maxScrollAttempts && noNewTweetsCount < 5) {
+            while (uniqueTweets.size < targetCount && scrollAttempts < maxScrollAttempts) {
                 // Extract tweets from current view
                 const newTweets = await this.page.evaluate(() => {
                     return Array.from(document.querySelectorAll('article[data-testid="tweet"]')).map(tweet => {

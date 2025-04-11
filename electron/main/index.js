@@ -8,6 +8,7 @@ const fs = require('fs').promises;
 const TweetDatabase = require('./database');
 const PreferencesManager = require('./preferences');
 const LicenseManager = require('./license');
+const AutoScraper = require('./auto-scraper');
 
 let mainWindow = null;
 let scraper = null;
@@ -53,6 +54,63 @@ async function createMainWindow() {
     db = new TweetDatabase();
     chatManager = new ChatManager(db, app.getPath('userData'));
     preferencesManager = new PreferencesManager();
+
+    // Initialize auto-scraper after db and scraper are created
+    const autoScraper = new AutoScraper(scraper, db);
+
+    // Set up auto-scraping event handlers
+    autoScraper.on('started', ({ interval }) => {
+        console.log(`Auto-scraping started with interval: ${interval}ms`);
+        mainWindow.webContents.send('auto-scraping-status', { isActive: true, interval });
+    });
+
+    autoScraper.on('stopped', () => {
+        console.log('Auto-scraping stopped');
+        mainWindow.webContents.send('auto-scraping-status', { isActive: false, interval: null });
+    });
+
+    autoScraper.on('cycleStarted', () => {
+        console.log('Auto-scraping cycle started');
+        mainWindow.webContents.send('auto-scraping-event', { type: 'cycleStarted' });
+    });
+
+    autoScraper.on('cycleCompleted', () => {
+        console.log('Auto-scraping cycle completed');
+        mainWindow.webContents.send('auto-scraping-event', { type: 'cycleCompleted' });
+    });
+
+    autoScraper.on('cycleError', ({ error }) => {
+        console.error('Auto-scraping cycle error:', error);
+        mainWindow.webContents.send('auto-scraping-event', { type: 'cycleError', error });
+    });
+
+    autoScraper.on('profileStarted', ({ type, target }) => {
+        console.log(`Starting to scrape ${type}: ${target}`);
+        mainWindow.webContents.send('auto-scraping-event', { type: 'profileStarted', type, target });
+    });
+
+    autoScraper.on('profileCompleted', ({ type, target, tweetCount }) => {
+        console.log(`Completed scraping ${type}: ${target}, found ${tweetCount} tweets`);
+        mainWindow.webContents.send('auto-scraping-event', { type: 'profileCompleted', type, target, tweetCount });
+    });
+
+    autoScraper.on('profileError', ({ type, target, error }) => {
+        console.error(`Error scraping ${type}: ${target}`, error);
+        mainWindow.webContents.send('auto-scraping-event', { type: 'profileError', type, target, error });
+    });
+
+    autoScraper.on('profileAdded', ({ type, target }) => {
+        console.log(`Added new auto-scraping profile: ${type}: ${target}`);
+        mainWindow.webContents.send('auto-scraping-event', { type: 'profileAdded', type, target });
+    });
+
+    autoScraper.on('profileRemoved', ({ type, target }) => {
+        console.log(`Removed auto-scraping profile: ${type}: ${target}`);
+        mainWindow.webContents.send('auto-scraping-event', { type: 'profileRemoved', type, target });
+    });
+
+    // Store autoScraper in the global scope
+    global.autoScraper = autoScraper;
 
     await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 }
@@ -307,47 +365,10 @@ ipcMain.handle('clear-twitter-session', async () => {
     }
 });
 
-// Add new IPC handlers for auto-scraping
+// Update IPC handlers for auto-scraping
 ipcMain.handle('start-auto-scraping', async (event, { interval = 3600000 }) => {
     try {
-        if (autoScrapingInterval) {
-            clearInterval(autoScrapingInterval);
-        }
-
-        autoScrapingInterval = setInterval(async () => {
-            try {
-                const profiles = await scraper.db.getAutoScrapingProfiles();
-                for (const profile of profiles) {
-                    try {
-                        if (profile.type === 'profile') {
-                            const data = await scraper.scrapeProfile(profile.target, 100);
-                            // Save profile data to data store
-                            await dataStore.saveTweets({
-                                type: 'profile',
-                                username: profile.target,
-                                tweets: data.tweets,
-                                profileInfo: data.profile,
-                                timestamp: new Date().toISOString()
-                            });
-                        } else if (profile.type === 'home') {
-                            const data = await scraper.scrapeHomeTimeline(100);
-                            // Save home timeline data to data store
-                            await dataStore.saveTweets({
-                                type: 'home',
-                                tweets: data.tweets,
-                                timestamp: new Date().toISOString()
-                            });
-                        }
-                        await scraper.db.updateAutoScrapingProfileLastScraped(profile.type, profile.target);
-                    } catch (error) {
-                        console.error(`Error auto-scraping ${profile.type} ${profile.target}:`, error);
-                    }
-                }
-            } catch (error) {
-                console.error('Error in auto-scraping interval:', error);
-            }
-        }, interval);
-
+        await global.autoScraper.start(interval);
         return { status: 'success', message: 'Auto-scraping started' };
     } catch (error) {
         console.error('Error starting auto-scraping:', error);
@@ -357,10 +378,7 @@ ipcMain.handle('start-auto-scraping', async (event, { interval = 3600000 }) => {
 
 ipcMain.handle('stop-auto-scraping', async () => {
     try {
-        if (autoScrapingInterval) {
-            clearInterval(autoScrapingInterval);
-            autoScrapingInterval = null;
-        }
+        await global.autoScraper.stop();
         return { status: 'success', message: 'Auto-scraping stopped' };
     } catch (error) {
         console.error('Error stopping auto-scraping:', error);
@@ -370,12 +388,7 @@ ipcMain.handle('stop-auto-scraping', async () => {
 
 ipcMain.handle('add-auto-scraping-profile', async (event, { type, target }) => {
     try {
-        const profiles = await scraper.db.getAutoScrapingProfiles();
-        if (profiles.length >= 5) {
-            throw new Error('Maximum number of auto-scraping profiles (5) reached');
-        }
-
-        await scraper.db.saveAutoScrapingProfile({ type, target });
+        await global.autoScraper.addProfile(type, target);
         return { status: 'success', message: 'Profile added to auto-scraping' };
     } catch (error) {
         console.error('Error adding auto-scraping profile:', error);
@@ -385,7 +398,7 @@ ipcMain.handle('add-auto-scraping-profile', async (event, { type, target }) => {
 
 ipcMain.handle('remove-auto-scraping-profile', async (event, { type, target }) => {
     try {
-        await scraper.db.deleteAutoScrapingProfile(type, target);
+        await global.autoScraper.removeProfile(type, target);
         return { status: 'success', message: 'Profile removed from auto-scraping' };
     } catch (error) {
         console.error('Error removing auto-scraping profile:', error);
@@ -395,10 +408,23 @@ ipcMain.handle('remove-auto-scraping-profile', async (event, { type, target }) =
 
 ipcMain.handle('get-auto-scraping-profiles', async () => {
     try {
-        const profiles = await scraper.db.getAutoScrapingProfiles();
+        const profiles = await global.autoScraper.getProfiles();
         return { status: 'success', profiles };
     } catch (error) {
         console.error('Error getting auto-scraping profiles:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('get-auto-scraping-status', async () => {
+    try {
+        return { 
+            status: 'success', 
+            isActive: global.autoScraper.isActive(),
+            interval: global.autoScraper.getInterval()
+        };
+    } catch (error) {
+        console.error('Error getting auto-scraping status:', error);
         throw error;
     }
 });
