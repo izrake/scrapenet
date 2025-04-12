@@ -11,6 +11,12 @@ A desktop application for scraping Twitter/X data with support for profile scrap
 - Data storage in MongoDB
 - Cross-platform support (macOS, Windows, Linux)
 
+## Prerequisites
+
+- Node.js (v16 or higher)
+- npm (v7 or higher)
+- Xcode Command Line Tools (for macOS builds)
+
 ## Installation
 
 ### Pre-built Binaries
@@ -25,8 +31,8 @@ Download the latest release for your platform:
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd twitter-scraper-app
+git clone https://github.com/yourusername/twitter-scraper.git
+cd twitter-scraper
 ```
 
 2. Install dependencies:
