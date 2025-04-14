@@ -1,23 +1,24 @@
 {
-  "name": "twitter-scraper-app",
+  "name": "twitter-scraper",
   "version": "1.0.0",
-  "description": "Twitter Scraper with Electron and Playwright",
-  "main": "./electron/main/index.js",
-  "homepage": "https://github.com/yourusername/twitter-scraper",
+  "description": "Twitter scraper application",
+  "main": "electron/main/index.js",
+  "homepage": "https://github.com/izrake/twitter-scraper",
   "author": {
     "name": "Prashant Maurya",
-    "email": "your.email@example.com"
+    "email": "scrapenetai@gmail.com"
   },
   "scripts": {
     "start": "electron .",
-    "dev": "cross-env NODE_ENV=development electron .",
+    "dev": "NODE_ENV=development electron .",
     "protect": "node scripts/protect-source.js",
     "prebuild": "npm run protect",
-    "build": "electron-builder build --mac --win --linux",
-    "build:mac": "electron-builder build --mac",
-    "build:win": "electron-builder build --win",
-    "build:linux": "electron-builder build --linux",
-    "postinstall": "npx playwright install chromium"
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:mac-intel": "electron-builder --mac --x64",
+    "build:mac-arm": "electron-builder --mac --arm64",
+    "build:universal": "electron-builder --mac --universal",
+    "postinstall": "electron-builder install-app-deps"
   },
   "license": "MIT",
   "dependencies": {
@@ -46,7 +47,7 @@
     "bytenode": "^1.5.3",
     "cross-env": "^7.0.3",
     "css-loader": "^6.10.0",
-    "electron": "^28.3.3",
+    "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
     "javascript-obfuscator": "^4.1.0",
     "postcss": "^8.4.35",
@@ -55,7 +56,7 @@
     "webpack-cli": "^5.1.4"
   },
   "build": {
-    "appId": "com.twitter-scraper.app",
+    "appId": "com.twitter.scraper",
     "productName": "Twitter Scraper",
     "directories": {
       "output": "dist",
@@ -63,6 +64,7 @@
     },
     "files": [
       "electron/**/*",
+      "node_modules/**/*",
       "package.json",
       ".env.example",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
@@ -76,24 +78,29 @@
       "node_modules/playwright/**/*",
       "electron/preload/**/*"
     ],
-    "extraResources": [],
+    "extraResources": [
+      {
+        "from": "electron/renderer/assets/logo_512.png",
+        "to": "logo_512.png"
+      }
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": ["x64", "arm64"]
         },
         {
           "target": "zip",
-          "arch": ["arm64"]
+          "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "build/icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "icon": "electron/renderer/assets/logo_512.png"
     },
     "dmg": {
       "contents": [
@@ -111,7 +118,8 @@
       "window": {
         "width": 540,
         "height": 400
-      }
+      },
+      "background": "electron/renderer/assets/logo_512.png"
     },
     "win": {
       "target": [
@@ -125,7 +133,7 @@
           "target": "portable"
         }
       ],
-      "icon": "build/icon.ico"
+      "icon": "electron/renderer/assets/logo_512.png"
     },
     "linux": {
       "target": [
@@ -133,8 +141,8 @@
         "deb"
       ],
       "category": "Utility",
-      "icon": "build/icon.png",
-      "maintainer": "Prashant Maurya <your.email@example.com>"
+      "icon": "electron/renderer/assets/logo_512.png",
+      "maintainer": "Prashant Maurya scrapenetai@gmail.com"
     },
     "nsis": {
       "oneClick": false,
