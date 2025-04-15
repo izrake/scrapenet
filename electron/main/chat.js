@@ -9,6 +9,7 @@ class ChatManager {
         this.configPath = path.join(userDataPath, 'llm_config.json');
         this.config = null;
         this.conversations = new Map(); // Store conversation state
+        this.handlers = []; // Add this to track handlers
         
         this.initializeHandlers();
         this.loadConfig();  
@@ -500,74 +501,84 @@ class ChatManager {
     }
 
     initializeHandlers() {
-        ipcMain.handle('save-llm-config', async (event, config) => {
-            return await this.saveConfig(config);
-        });
-
-        ipcMain.handle('get-llm-config', async () => {
-            return this.config;
-        });
-
-        ipcMain.handle('chat-query', async (event, { query, conversationId, timeframe = null }) => {
-            try {
-                let conversation = this.conversations.get(conversationId);
-                if (!conversation) {
-                    conversation = { state: 'initial', context: {} };
-                    this.conversations.set(conversationId, conversation);
-                }
-
-                // Handle time-based queries
-                if (this.isTimeBasedQuery(query)) {
-                    const timeCheck = await this.handleTimeBasedQuery(query);
-                    if (timeCheck?.needsMoreInfo) {
-                        conversation.state = 'awaiting_timeframe';
-                        conversation.context.originalQuery = query;
-                        return {
-                            success: true,
-                            needsMoreInfo: true,
-                            prompt: timeCheck.prompt
-                        };
+        // Store handlers so we can remove them later
+        this.handlers = [
+            { channel: 'save-llm-config', handler: async (event, config) => await this.saveConfig(config) },
+            { channel: 'get-llm-config', handler: async () => this.config },
+            { channel: 'chat-query', handler: async (event, { query, conversationId, timeframe = null }) => {
+                try {
+                    let conversation = this.conversations.get(conversationId);
+                    if (!conversation) {
+                        conversation = { state: 'initial', context: {} };
+                        this.conversations.set(conversationId, conversation);
                     }
+
+                    // Handle time-based queries
+                    if (this.isTimeBasedQuery(query)) {
+                        const timeCheck = await this.handleTimeBasedQuery(query);
+                        if (timeCheck?.needsMoreInfo) {
+                            conversation.state = 'awaiting_timeframe';
+                            conversation.context.originalQuery = query;
+                            return {
+                                success: true,
+                                needsMoreInfo: true,
+                                prompt: timeCheck.prompt
+                            };
+                        }
+                    }
+
+                    // If we were waiting for timeframe and got it
+                    if (conversation.state === 'awaiting_timeframe') {
+                        query = conversation.context.originalQuery;
+                        timeframe = timeframe || query; // Use the provided timeframe
+                        conversation.state = 'initial';
+                    }
+
+                    // Execute the natural query to get relevant tweets
+                    const queryResults = await this.processNaturalQuery(query, timeframe);
+
+                    // Analyze the results based on the user's prompt
+                    const analysis = await this.analyzeTweets(queryResults.results, query);
+
+                    return {
+                        success: true,
+                        response: analysis,
+                        queryDetails: queryResults.query,
+                        tweetCount: queryResults.count
+                    };
+
+                } catch (error) {
+                    console.error('Chat query error:', error);
+                    throw error;
                 }
-
-                // If we were waiting for timeframe and got it
-                if (conversation.state === 'awaiting_timeframe') {
-                    query = conversation.context.originalQuery;
-                    timeframe = timeframe || query; // Use the provided timeframe
-                    conversation.state = 'initial';
+            }},
+            { channel: 'natural-query', handler: async (event, query) => {
+                try {
+                    const results = await this.executeMongoQuery(query);
+                    return {
+                        success: true,
+                        ...results
+                    };
+                } catch (error) {
+                    console.error('Natural query error:', error);
+                    throw error;
                 }
+            }}
+        ];
 
-                // Execute the natural query to get relevant tweets
-                const queryResults = await this.processNaturalQuery(query, timeframe);
-
-                // Analyze the results based on the user's prompt
-                const analysis = await this.analyzeTweets(queryResults.results, query);
-
-                return {
-                    success: true,
-                    response: analysis,
-                    queryDetails: queryResults.query,
-                    tweetCount: queryResults.count
-                };
-
-            } catch (error) {
-                console.error('Chat query error:', error);
-                throw error;
-            }
+        // Register handlers
+        this.handlers.forEach(({ channel, handler }) => {
+            ipcMain.handle(channel, handler);
         });
+    }
 
-        ipcMain.handle('natural-query', async (event, query) => {
-            try {
-                const results = await this.executeMongoQuery(query);
-                return {
-                    success: true,
-                    ...results
-                };
-            } catch (error) {
-                console.error('Natural query error:', error);
-                throw error;
-            }
+    cleanup() {
+        // Remove all registered handlers
+        this.handlers.forEach(({ channel }) => {
+            ipcMain.removeHandler(channel);
         });
+        this.handlers = [];
+        this.conversations.clear();
     }
 }
 

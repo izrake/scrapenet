@@ -47,6 +47,45 @@ async function createMainWindow() {
         }
     });
 
+    // Add window close handler
+    mainWindow.on('close', async (event) => {
+        event.preventDefault(); // Prevent immediate closing
+        
+        try {
+            // Stop auto-scraping if active
+            if (global.autoScraper && global.autoScraper.isRunning) {
+                await global.autoScraper.stop();
+            }
+            
+            // Cleanup database connection
+            if (db) {
+                await db.close();
+            }
+            
+            // Stop API server
+            if (apiServer) {
+                await apiServer.stop();
+            }
+            
+            // Cleanup scraper resources
+            if (scraper) {
+                await scraper.cleanup(false);
+            }
+
+            // Cleanup chat manager
+            if (chatManager) {
+                chatManager.cleanup();
+                chatManager = null;
+            }
+            
+            // Now actually close the window
+            mainWindow.destroy();
+        } catch (error) {
+            console.error('Error during cleanup:', error);
+            mainWindow.destroy(); // Force close even if cleanup fails
+        }
+    });
+
     // Initialize core services
     scraper = new TwitterScraper();
     apiServer = new APIServer();
@@ -134,7 +173,8 @@ async function checkLicenseAndStart() {
 // App lifecycle handlers
 app.whenReady().then(checkLicenseAndStart);
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
+    // For macOS, don't quit unless explicitly asked
     if (process.platform !== 'darwin') {
         app.quit();
     }
@@ -142,7 +182,36 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-        checkLicenseAndStart();
+        checkLicenseAndStart(); // This already includes license validation
+    }
+});
+
+// Add a before-quit handler for final cleanup
+app.on('before-quit', async (event) => {
+    event.preventDefault();
+    try {
+        // Final cleanup of any remaining resources
+        if (global.autoScraper && global.autoScraper.isRunning) {
+            await global.autoScraper.stop();
+        }
+        if (db) {
+            await db.close();
+        }
+        if (apiServer) {
+            await apiServer.stop();
+        }
+        if (scraper) {
+            await scraper.cleanup(false);
+        }
+        if (chatManager) {
+            chatManager.cleanup();
+            chatManager = null;
+        }
+        // Now actually quit
+        app.exit(0);
+    } catch (error) {
+        console.error('Error during final cleanup:', error);
+        app.exit(1);
     }
 });
 
