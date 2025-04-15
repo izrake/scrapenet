@@ -330,7 +330,7 @@ ipcMain.handle('clear-stored-tweets', async () => {
         }
 
         console.log('Clearing tweets from database...');
-        await scraper.db.clearTweets();
+        await scraper.db.deleteAllSessions();
         console.log('Tweets cleared successfully');
         
         return { success: true };

@@ -881,6 +881,36 @@ class TweetDatabase {
         }
     }
 
+    async deleteAllSessions() {
+        try {
+            if (!this.shareData) {
+                // Delete only session files in localDataDir
+                const files = await fsPromises.readdir(this.localDataDir);
+                for (const file of files) {
+                    if (file.startsWith('session_') && file.endsWith('.json')) {
+                        await fsPromises.unlink(path.join(this.localDataDir, file));
+                    }
+                }
+                console.log('Deleted all local session files');
+                return true;
+            }
+
+            if (!this.isConnected) {
+                await this.initialize();
+            }
+
+            // Delete all sessions and tweets from MongoDB
+            await this.db.collection(this.collections.SESSIONS).deleteMany({});
+            await this.db.collection(this.collections.TWEETS).deleteMany({});
+            
+            console.log('Deleted all sessions and associated tweets from database');
+            return true;
+        } catch (error) {
+            console.error('Error deleting all sessions:', error);
+            throw error;
+        }
+    }
+
     async saveAutoScrapingProfile(profile) {
         try {
             await this.ensureConnection();
