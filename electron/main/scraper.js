@@ -26,7 +26,7 @@ class TwitterScraper {
         this.tempStorage.initialize();
         
         // Check authentication state on startup
-        this.initializeAuthState();
+        //this.initializeAuthState();
     }
 
     async initializeAuthState() {
@@ -409,9 +409,9 @@ class TwitterScraper {
             });
 
             return {
-                profile,
-                tweets: tweets.slice(0, results.success),
                 sessionId,
+                tweetsFound: results.success,
+                failed: results.failed,
                 status: isSuccessful ? 'completed' : 'incomplete'
             };
         } catch (error) {
@@ -503,8 +503,9 @@ class TwitterScraper {
             });
 
             return {
-                tweets: tweets.slice(0, results.success),
                 sessionId,
+                tweetsFound: results.success,
+                failed: results.failed,
                 status: isSuccessful ? 'completed' : 'incomplete'
             };
         } catch (error) {

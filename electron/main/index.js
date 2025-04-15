@@ -218,13 +218,13 @@ ipcMain.handle('scrape-profile', async (event, { username, limit }) => {
         const data = await scraper.scrapeProfile(username, limit);
         
         // Save profile data to data store
-        await dataStore.saveTweets({
+        /*await dataStore.saveTweets({
             type: 'profile',
             username,
             tweets: data.tweets,
             profileInfo: data.profile,
             timestamp: new Date().toISOString()
-        });
+        });*/
         
         return { status: 'success', data };
     } catch (error) {
@@ -251,11 +251,11 @@ ipcMain.handle('scrape-home', async (event, { limit }) => {
         const tweets = await scraper.scrapeHomeTimeline(limit);
         
         // Save home timeline tweets to data store
-        await dataStore.saveTweets({
+        /*await dataStore.saveTweets({
             type: 'home',
             tweets,
             timestamp: new Date().toISOString()
-        });
+        });*/
         
         return { status: 'success', tweets };
     } catch (error) {
