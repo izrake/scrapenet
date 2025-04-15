@@ -186,12 +186,12 @@ ipcMain.handle('scrape-tweets', async (event, { query, limit }) => {
         const tweets = await scraper.scrapeTweets(query, limit);
         
         // Save scraped tweets to data store
-        await dataStore.saveTweets({
+       /* await dataStore.saveTweets({
             type: 'search',
             query,
             tweets,
             timestamp: new Date().toISOString()
-        });
+        });*/
         
         return { status: 'success', tweets };
     } catch (error) {
@@ -366,9 +366,9 @@ ipcMain.handle('clear-twitter-session', async () => {
 });
 
 // Update IPC handlers for auto-scraping
-ipcMain.handle('start-auto-scraping', async (event, { interval = 3600000 }) => {
+ipcMain.handle('start-auto-scraping', async (event, { interval = 3600000, type = 'home' }) => {
     try {
-        await global.autoScraper.start(interval);
+        await global.autoScraper.start(interval, type);
         return { status: 'success', message: 'Auto-scraping started' };
     } catch (error) {
         console.error('Error starting auto-scraping:', error);

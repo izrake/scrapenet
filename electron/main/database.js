@@ -734,7 +734,7 @@ class TweetDatabase {
             const formattedSession = {
                 _id: session._id.toString(),
                 scrape_type: session.scrape_type || 'twitter',
-                target: session._id.toString() || 'twitter',  // Default to 'twitter' if target is undefined
+                target: session.target || 'twitter',  // Default to 'twitter' if target is undefined
                 status: session.status || 'unknown',
                 tweets_found: session.tweets?.length || 0,
                 started_at: session.started_at ? new Date(session.started_at) : new Date(),

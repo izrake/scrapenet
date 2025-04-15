@@ -2118,7 +2118,7 @@
                         sessionCard.innerHTML = `
                             <div class="session-header">
                                 <div class="session-info">
-                                    <h3>${session.scrape_type === 'profile' ? `@${session.target}` : 'Home Timeline'}</h3>
+                                    <h3>${`@${session.target}`}</h3>
                                     <p class="session-date">${new Date(session.started_at).toLocaleString()}</p>
                                 </div>
                                 <div class="session-actions">
@@ -2515,7 +2515,7 @@
                     }
                 }
 
-                await window.electronAPI.startAutoScraping({ interval });
+                await window.electronAPI.startAutoScraping({ interval, type: scrapeType });
                 startAutoScrapeButton.style.display = 'none';
                 stopAutoScrapeButton.style.display = 'block';
                 

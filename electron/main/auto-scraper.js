@@ -13,18 +13,18 @@ class AutoScraper extends EventEmitter {
         this.profilesFile = path.join(this.db.localDataDir, 'auto_scraping_profiles.json');
     }
 
-    async start(interval = 3600000) {
+    async start(interval = 3600000, type = 'home') {
         if (this.isRunning) {
             throw new Error('Auto-scraping is already running');
         }
 
         this.isRunning = true;
         this.interval = interval;
-        this.emit('started', { interval });
-
+        this.scrapeType = type;
+        this.emit('started', { interval, type });
         // Set up the interval for cycles
         this.currentCycle = setInterval(async () => {
-            await this.runCycle();
+            await this.runCycle(this.scrapeType);
         }, interval);
     }
 
@@ -42,45 +42,38 @@ class AutoScraper extends EventEmitter {
         this.emit('stopped');
     }
 
-    async runCycle() {
+    async runCycle(type='home') {
+        let data;
         try {
             this.emit('cycleStarted');
-            const profiles = await this.getProfiles();
-            
-            for (const profile of profiles) {
-                try {
-                    this.emit('profileStarted', { type: profile.type, target: profile.target });
-                    
-                    let data;
-                    if (profile.type === 'profile') {
-                        data = await this.scraper.scrapeProfile(profile.target, 50);
-                    } else if (profile.type === 'home') {
-                        data = await this.scraper.scrapeHomeTimeline(50);
-                    }
-
-                    // Save the scraped data
-                    for (const tweet of data.tweets) {
-                        await this.db.saveTweet(tweet, data.sessionId);
-                    }
-
-                    // Update last scraped timestamp
+ 
+            if(type === 'home') {
+                data = await this.scraper.scrapeHomeTimeline(50);
+                this.emit('home timeline scraped', { 
+                    type: type, 
+                    session_id: data.sessionId,
+                    status: data.status,
+                    tweetCount: data.tweetsFound
+                });
+            }
+            else if(type === 'profile') {
+                const profiles = await this.getProfiles();
+                for (const profile of profiles) {
+                    data = await this.scraper.scrapeProfile(profile.target, 50);
                     await this.updateProfileLastScraped(profile.type, profile.target);
-                    
-                    this.emit('profileCompleted', { 
-                        type: profile.type, 
-                        target: profile.target,
-                        tweetCount: data.tweets.length
-                    });
-                } catch (error) {
-                    console.error(`Error auto-scraping ${profile.type} ${profile.target}:`, error);
-                    this.emit('profileError', { 
-                        type: profile.type, 
-                        target: profile.target,
-                        error: error.message
+                    this.emit('home timeline scraped', { 
+                        type: type, 
+                        profile_id: profile.target,
+                        target: "Profile",
+                        tweetCount: data.tweetsFound
                     });
                 }
             }
-            
+            else{
+                this.emit('QueryScrape', { type: type, target: "Query" });
+                data = await this.scraper.scrapeTweets(type, 50);
+                this.emit('QueryScrape', { type: type, target: "Query", tweetCount: data.tweets.length });
+            }             
             this.emit('cycleCompleted');
         } catch (error) {
             console.error('Error in auto-scraping cycle:', error);
