@@ -3169,57 +3169,75 @@
         });
 
         // Add event listeners for auto-scraping status updates
-        window.electronAPI.onAutoScrapingStatus((status) => {
-            const statusElement = document.getElementById('autoScrapingStatus');
-            if (status.isActive) {
-                statusElement.textContent = `Auto-scraping active (${status.interval / 60000} min interval)`;
-                statusElement.className = 'status active';
-            } else {
-                statusElement.textContent = 'Auto-scraping inactive';
-                statusElement.className = 'status inactive';
-            }
-        });
+        if (window.electronAPI.onAutoScrapingStatus) {
+            window.electronAPI.onAutoScrapingStatus((status) => {
+                const statusElement = document.getElementById('autoScrapingStatus');
+                if (statusElement) {
+                    if (status.isActive) {
+                        statusElement.textContent = `Auto-scraping active (${status.interval / 60000} min interval)`;
+                        statusElement.className = 'status active';
+                    } else {
+                        statusElement.textContent = 'Auto-scraping inactive';
+                        statusElement.className = 'status inactive';
+                    }
+                }
+            });
+        }
 
         // Add event listeners for auto-scraping events
-        window.electronAPI.onAutoScrapingEvent((event) => {
-            const eventLog = document.getElementById('autoScrapingEventLog');
-            const eventElement = document.createElement('div');
-            eventElement.className = 'event-log-entry';
-            
-            switch (event.type) {
-                case 'cycleStarted':
-                    eventElement.textContent = 'Starting new scraping cycle...';
-                    break;
-                case 'cycleCompleted':
-                    eventElement.textContent = 'Scraping cycle completed';
-                    break;
-                case 'cycleError':
-                    eventElement.textContent = `Error in scraping cycle: ${event.error}`;
-                    eventElement.className += ' error';
-                    break;
-                case 'profileStarted':
-                    eventElement.textContent = `Starting to scrape ${event.type}: ${event.target}`;
-                    break;
-                case 'profileCompleted':
-                    eventElement.textContent = `Completed scraping ${event.type}: ${event.target} (${event.tweetCount} tweets)`;
-                    break;
-                case 'profileError':
-                    eventElement.textContent = `Error scraping ${event.type}: ${event.target} - ${event.error}`;
-                    eventElement.className += ' error';
-                    break;
-                case 'profileAdded':
-                    eventElement.textContent = `Added new auto-scraping profile: ${event.type}: ${event.target}`;
-                    break;
-                case 'profileRemoved':
-                    eventElement.textContent = `Removed auto-scraping profile: ${event.type}: ${event.target}`;
-                    break;
+        if (window.electronAPI.onAutoScrapingEvent) {
+            window.electronAPI.onAutoScrapingEvent((event) => {
+                const eventLog = document.getElementById('autoScrapingEventLog');
+                if (eventLog) {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = 'event-log-entry';
+                    
+                    switch (event.type) {
+                        case 'cycleStarted':
+                            eventElement.textContent = 'Starting new scraping cycle...';
+                            break;
+                        case 'cycleCompleted':
+                            eventElement.textContent = 'Scraping cycle completed';
+                            break;
+                        case 'cycleError':
+                            eventElement.textContent = `Error in scraping cycle: ${event.error}`;
+                            eventElement.className += ' error';
+                            break;
+                        case 'profileStarted':
+                            eventElement.textContent = `Starting to scrape ${event.type}: ${event.target}`;
+                            break;
+                        case 'profileCompleted':
+                            eventElement.textContent = `Completed scraping ${event.type}: ${event.target} (${event.tweetCount} tweets)`;
+                            break;
+                        case 'profileError':
+                            eventElement.textContent = `Error scraping ${event.type}: ${event.target} - ${event.error}`;
+                            eventElement.className += ' error';
+                            break;
+                        case 'profileAdded':
+                            eventElement.textContent = `Added new auto-scraping profile: ${event.type}: ${event.target}`;
+                            break;
+                        case 'profileRemoved':
+                            eventElement.textContent = `Removed auto-scraping profile: ${event.type}: ${event.target}`;
+                            break;
+                    }
+                    
+                    eventLog.insertBefore(eventElement, eventLog.firstChild);
+                    
+                    // Keep only the last 50 events
+                    while (eventLog.children.length > 50) {
+                        eventLog.removeChild(eventLog.lastChild);
+                    }
+                }
+            });
+        }
+
+        // Clean up event listeners when window is closed
+        window.addEventListener('beforeunload', () => {
+            if (window.electronAPI.removeAutoScrapingStatusListener) {
+                window.electronAPI.removeAutoScrapingStatusListener();
             }
-            
-            eventLog.insertBefore(eventElement, eventLog.firstChild);
-            
-            // Keep only the last 50 events
-            while (eventLog.children.length > 50) {
-                eventLog.removeChild(eventLog.lastChild);
+            if (window.electronAPI.removeAutoScrapingEventListener) {
+                window.electronAPI.removeAutoScrapingEventListener();
             }
         });
     </script>
