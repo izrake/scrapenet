@@ -1,15 +1,15 @@
 # Twitter Scraper Custom License
 
-## Version 1.0, [Current Date]
+## Version 1.0, 17/04/2025
 
-Copyright (c) [Your Name/Company]
+Copyright (c) Beta360 Pte Ltd
 
 ## Definitions
 
 - "Software" refers to the Twitter Scraper application, including all source code, documentation, and related materials.
 - "Personal Use" means use by an individual for non-commercial purposes.
 - "Commercial Use" means any use of the Software that is primarily intended for or directed toward commercial advantage or monetary compensation.
-- "Licensor" refers to [Your Name/Company].
+- "Licensor" refers to beta360 pte ltd.
 - "You" refers to the individual or entity exercising the rights under this License.
 
 ## Grant of Rights
@@ -23,7 +23,7 @@ Subject to the terms and conditions of this License, Licensor hereby grants You 
 
 1. **Authentication Requirement**: All uses of the Software require proper authentication through the application's login mechanism. Attempting to bypass or disable the authentication mechanism is expressly prohibited.
 
-2. **Commercial Use**: Any Commercial Use of the Software or derivative works requires explicit written permission from the Licensor. To obtain permission, contact [your contact information].
+2. **Commercial Use**: Any Commercial Use of the Software or derivative works requires explicit written permission from the Licensor. To obtain permission, contact scrapenetai@gmail.com.
 
 3. **Redistribution**: Redistribution of the Software, whether in original or modified form, must:
    - Include a copy of this License
@@ -46,5 +46,6 @@ Using, copying, modifying, or distributing the Software constitutes acceptance o
 ---
 
 For inquiries regarding Commercial Use licensing, please contact:
-[Your Name]
-[Your Email/Contact Information] 
+Prashant Maurya
+scrapenetai@gmail.com
+beta360 pte ltd
