@@ -1,4 +1,4 @@
-# Twitter Scraper
+# Scrapenet AI - Your social assistant which keeps everything local
 
 A powerful, open-source desktop application for ethically scraping Twitter data. Built with Electron and Playwright.
 
