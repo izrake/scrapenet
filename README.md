@@ -166,5 +166,30 @@ This project was born from a simple idea: technology should work for us, not the
 - **Open Source**: Community-driven development for better solutions
 - **Ethical Design**: Respecting platform rules and user privacy
 
+## 📢 Feedback & Community
+
+Your feedback helps make ScrapeNet better! We'd love to hear about your experience.
+
+### 📝 Share Your Experience
+Please take a moment to fill out our feedback form:
+[**Submit Feedback**](https://forms.gle/CFC4LwiDEJX4Vsy8A)
+
+We're particularly interested in:
+- How many hours ScrapeNet is saving you daily
+- Features you love
+- Areas for improvement
+- New feature suggestions
+
+### 🐛 Reporting Issues
+For technical issues or bugs:
+1. Check existing [Issues](https://github.com/izrake/scrapenet/issues)
+2. Create a new issue with detailed reproduction steps
+
+### 📊 Impact Tracking
+Help us measure the collective time saved by sharing:
+- Your use cases
+- Time saved daily
+- Productivity improvements
+
 ---
 Made with ❤️ by [Prashant Maurya](https://github.com/izrake)
