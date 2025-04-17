@@ -5,6 +5,29 @@ A powerful, open-source desktop application for ethically scraping Twitter data.
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
 
+## 🤔 Why I Built This
+
+Ever found yourself endlessly scrolling through Twitter, watching hours slip away? I did. That's why I created this tool.
+
+### 🎯 The Vision
+I wanted to add more meaningful hours back into people's lives. Instead of being caught in the infinite scroll:
+- Let ScrapeNet handle the data collection
+- Check updates on your schedule (every 5 minutes or end of day)
+- Get exactly what matters to you, when you want it
+
+### 💡 The Impact
+- **Time Saved**: Personally saved hours daily by eliminating mindless scrolling
+- **Better Focus**: Get updates on your terms, not the platform's
+- **Data Control**: Everything runs locally - your data stays with you
+- **Future-Proof**: Starting with Twitter, expanding to more social platforms
+
+### 🔒 Privacy First
+Your privacy matters. That's why:
+- All processing happens on your local machine
+- No cloud storage or third-party servers
+- You maintain complete control of your data
+- Open source for full transparency
+
 ## 🚀 Features
 
 - **Automated Twitter Authentication**: Secure login process using your Twitter credentials
@@ -24,8 +47,8 @@ A powerful, open-source desktop application for ethically scraping Twitter data.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/izrake/twitter-scraper.git
-cd twitter-scraper
+git clone https://github.com/izrake/scrapenet.git
+cd scrapenet
 ```
 
 2. Install dependencies:
@@ -112,7 +135,7 @@ This tool is for educational and research purposes only. Users are responsible f
 ## 📞 Support
 
 For support, please:
-1. Check the [Issues](https://github.com/izrake/twitter-scraper/issues) page
+1. Check the [Issues](https://github.com/izrake/scrapenet/issues) page
 2. Create a new issue if your problem isn't already listed
 3. For commercial use inquiries, contact: scrapenetai@gmail.com
 
@@ -123,6 +146,25 @@ Stay updated with the latest version:
 git pull origin main
 npm install
 ```
+
+## 🗺️ Roadmap
+
+- Twitter Integration (Current)
+- LinkedIn Integration (Coming Soon)
+- Instagram Integration (Planned)
+- Facebook Integration (Planned)
+- Custom Alert System
+- Advanced Analytics Dashboard
+
+## 💭 Philosophy
+
+This project was born from a simple idea: technology should work for us, not the other way around. By automating social media monitoring, we free ourselves to focus on what truly matters while staying informed.
+
+### Core Principles:
+- **Time is Precious**: Automate the mundane to focus on the meaningful
+- **Data Privacy**: Your data should belong to you
+- **Open Source**: Community-driven development for better solutions
+- **Ethical Design**: Respecting platform rules and user privacy
 
 ---
 Made with ❤️ by [Prashant Maurya](https://github.com/izrake)
