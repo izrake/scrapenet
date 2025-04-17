@@ -17,18 +17,7 @@ class DataStore {
     async initialize() {
         try {
             await fs.mkdir(this.dataDir, { recursive: true });
-            try {
-                const fileContent = await fs.readFile(this.dataFile, 'utf-8');
-                this.data = JSON.parse(fileContent);
-                console.log('Loaded existing data file:', this.dataFile);
-            } catch (error) {
-                if (error.code !== 'ENOENT') {
-                    console.error('Error reading data file:', error);
-                } else {
-                    console.log('No existing data file found, will create new one');
-                }
-                // If file doesn't exist, we'll create it when saving
-            }
+
         } catch (error) {
             console.error('Error initializing data store:', error);
             throw error;

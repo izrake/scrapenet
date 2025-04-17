@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld(
 );
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    // Authentication
     startTwitterAuth: () => ipcRenderer.invoke('start-twitter-auth'),
     scrapeTweets: (params) => ipcRenderer.invoke('scrape-tweets', params),
     scrapeProfile: (params) => ipcRenderer.invoke('scrape-profile', params),
@@ -21,20 +22,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStoredTweets: () => ipcRenderer.invoke('get-stored-tweets'),
     clearStoredTweets: () => ipcRenderer.invoke('clear-stored-tweets'),
     clearTwitterSession: () => ipcRenderer.invoke('clear-twitter-session'),
+    
     // Download functionality
     downloadAllTweets: () => ipcRenderer.invoke('download-all-tweets'),
     downloadTweetsBySession: (sessionId) => ipcRenderer.invoke('download-tweets-by-session', sessionId),
     deleteSession: (sessionId) => ipcRenderer.invoke('delete-session', sessionId),
+    
     // Auto-scraping functions
     startAutoScraping: (params) => ipcRenderer.invoke('start-auto-scraping', params),
     stopAutoScraping: () => ipcRenderer.invoke('stop-auto-scraping'),
     addAutoScrapingProfile: (params) => ipcRenderer.invoke('add-auto-scraping-profile', params),
     removeAutoScrapingProfile: (params) => ipcRenderer.invoke('remove-auto-scraping-profile', params),
     getAutoScrapingProfiles: () => ipcRenderer.invoke('get-auto-scraping-profiles'),
+    
+    // Auto-scraping event listeners
+    onAutoScrapingStatus: (callback) => {
+        ipcRenderer.on('auto-scraping-status', (_, status) => callback(status));
+    },
+    onAutoScrapingEvent: (callback) => {
+        ipcRenderer.on('auto-scraping-event', (_, event) => callback(event));
+    },
+    removeAutoScrapingStatusListener: () => {
+        ipcRenderer.removeAllListeners('auto-scraping-status');
+    },
+    removeAutoScrapingEventListener: () => {
+        ipcRenderer.removeAllListeners('auto-scraping-event');
+    },
+    
     // Chat APIs
     saveLLMConfig: (config) => ipcRenderer.invoke('save-llm-config', config),
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     chatQuery: (query) => ipcRenderer.invoke('chat-query', query),
+    
     // Natural language query
     naturalQuery: (query) => ipcRenderer.invoke('natural-query', query)
 }); 
