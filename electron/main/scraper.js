@@ -82,7 +82,9 @@ class TwitterScraper {
 
         try {
             console.log('Initializing browser...');
-            this.browser = await chromium.launch({
+            
+            // Create browser launch options with better error handling
+            const launchOptions = {
                 headless: false,
                 args: [
                     '--disable-features=site-per-process',
@@ -90,7 +92,61 @@ class TwitterScraper {
                     '--no-sandbox',
                     '--disable-setuid-sandbox'
                 ]
-            });
+            };
+            
+            // Define browser paths based on platform
+            let browserPaths = [];
+            
+            if (process.platform === 'darwin') {  // macOS
+                browserPaths = [
+                    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+                    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+                    '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+                    '/Applications/Chromium.app/Contents/MacOS/Chromium'
+                ];
+            } else if (process.platform === 'win32') {  // Windows
+                browserPaths = [
+                    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+                    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+                    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+                    'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+                    'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+                ];
+            } else if (process.platform === 'linux') {  // Linux
+                browserPaths = [
+                    '/usr/bin/google-chrome',
+                    '/usr/bin/google-chrome-stable',
+                    '/usr/bin/microsoft-edge',
+                    '/usr/bin/brave-browser',
+                    '/usr/bin/chromium',
+                    '/usr/bin/chromium-browser'
+                ];
+            }
+            
+            // Try to find an installed browser
+            for (const browserPath of browserPaths) {
+                try {
+                    const stats = await fs.stat(browserPath);
+                    if (stats.isFile()) {
+                        console.log(`Found browser at: ${browserPath}`);
+                        launchOptions.executablePath = browserPath;
+                        break;
+                    }
+                } catch (err) {
+                    // Browser not found at this path, continue to next one
+                }
+            }
+            
+            // If we found a browser, log the path we're using
+            if (launchOptions.executablePath) {
+                console.log(`Using browser at: ${launchOptions.executablePath}`);
+            } else {
+                console.log('No specific browser path found, will use Playwright\'s default browser');
+            }
+            
+            console.log('Launching browser with options:', JSON.stringify(launchOptions, null, 2));
+            this.browser = await chromium.launch(launchOptions);
 
             // Create new context with storage state if available
             const storageState = await this.loadStorageState();
@@ -115,8 +171,17 @@ class TwitterScraper {
             
             // Initialize browser if not already initialized
             if (!await this.initializeBrowser()) {
-                throw new Error('Failed to initialize browser');
+                const error = new Error('Failed to initialize browser');
+                error.browserInitFailed = true;
+                throw error;
             }
+
+            // Log browser details to help with debugging
+            console.log('Browser info:', {
+                browser: this.browser ? 'Initialized' : 'Not initialized',
+                context: this.context ? 'Initialized' : 'Not initialized',
+                page: this.page ? 'Initialized' : 'Not initialized'
+            });
 
             await this.page.goto('https://x.com/home');
             const isStillValid = await this.checkAuthenticationState();
@@ -168,6 +233,12 @@ class TwitterScraper {
             return loginSuccess;
         } catch (error) {
             console.error('Authentication error:', error);
+            
+            // Add browser initialization info to help troubleshoot
+            if (error.browserInitFailed) {
+                console.error('CRITICAL: Browser initialization failed. Please check browser installation.');
+            }
+            
             await this.cleanup();
             return false;
         }

@@ -21,6 +21,18 @@ let preferencesManager;
 let licenseWindow = null;
 const licenseManager = new LicenseManager();
 
+const licenseText = `
+Twitter Scraper Custom License
+
+This software is provided under a custom license that allows:
+- Free personal use
+- Required login for all usage
+- Commercial use only with explicit permission
+
+By using this software, you agree to these terms.
+For full license details, see the LICENSE file.
+`;
+
 async function createLicenseWindow() {
     licenseWindow = new BrowserWindow({
         width: 1200,
@@ -33,7 +45,28 @@ async function createLicenseWindow() {
         }
     });
 
+    // Display license information
     await licenseWindow.loadFile(path.join(__dirname, '../renderer/license.html'));
+    
+    // Add license information to the page
+    licenseWindow.webContents.executeJavaScript(`
+        document.addEventListener('DOMContentLoaded', () => {
+            const licenseInfoElement = document.createElement('div');
+            licenseInfoElement.style.margin = '20px';
+            licenseInfoElement.style.padding = '15px';
+            licenseInfoElement.style.border = '1px solid #ddd';
+            licenseInfoElement.style.borderRadius = '5px';
+            licenseInfoElement.style.backgroundColor = '#f9f9f9';
+            licenseInfoElement.innerHTML = \`
+                <h3>License Information</h3>
+                <p style="white-space: pre-line">${licenseText}</p>
+                <p>This application is for personal use only. Commercial use requires explicit permission.</p>
+                <p>All usage requires authentication via Twitter.</p>
+            \`;
+            
+            document.body.appendChild(licenseInfoElement);
+        });
+    `);
 }
 
 async function createMainWindow() {
@@ -227,13 +260,33 @@ ipcMain.handle('start-twitter-auth', async () => {
         if (!scraper) {
             throw new Error('Scraper not initialized');
         }
-        const success = await scraper.startAuth();
-        if (!success) {
-            throw new Error('Failed to start Twitter authentication');
+        
+        console.log('Starting Twitter authentication process...');
+        
+        // Add catch block specifically for initialization errors
+        try {
+            const success = await scraper.startAuth();
+            
+            if (!success) {
+                // Provide more detailed error information
+                if (!scraper.browser) {
+                    throw new Error('Failed to start Twitter authentication: Browser could not be launched. Please check that you have a compatible browser installed (Chrome, Edge, or Brave).');
+                } else {
+                    throw new Error('Failed to start Twitter authentication: Authentication process was unsuccessful. Please try again.');
+                }
+            }
+            return { status: 'success', message: 'Authentication successful' };
+        } catch (error) {
+            // Check for browser initialization errors for more specific messaging
+            if (error.browserInitFailed || error.message.includes('Failed to initialize browser')) {
+                throw new Error('Failed to start Twitter authentication: Could not initialize browser. Please make sure you have Google Chrome, Microsoft Edge, or Brave Browser installed and accessible.');
+            }
+            // Otherwise, re-throw the original error
+            throw error;
         }
-        return { status: 'success', message: 'Authentication successful' };
     } catch (error) {
         console.error('Authentication error:', error);
+        // Make sure to throw the full error object for proper client-side handling
         throw error;
     }
 });

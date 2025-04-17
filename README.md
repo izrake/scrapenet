@@ -1,37 +1,30 @@
-# Twitter Scraper App
+# Twitter Scraper
 
-A desktop application for scraping Twitter/X data with support for profile scraping, search queries, and home timeline extraction.
+A powerful, open-source desktop application for ethically scraping Twitter data. Built with Electron and Playwright.
 
-## Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
 
-- Profile scraping with detailed user information
-- Search tweets by keywords
-- Home timeline scraping
-- Automatic session management
-- Data storage in MongoDB
-- Cross-platform support (macOS, Windows, Linux)
+## 🚀 Features
 
-## Prerequisites
+- **Automated Twitter Authentication**: Secure login process using your Twitter credentials
+- **Advanced Search Capabilities**: Search tweets by keywords, hashtags, or users
+- **Profile Scraping**: Gather public profile information
+- **Data Export**: Export results in multiple formats
+- **Cross-Platform**: Supports macOS, Windows, and Linux
+- **User-Friendly Interface**: Clean and intuitive desktop application
 
-- Node.js (v16 or higher)
-- npm (v7 or higher)
-- Xcode Command Line Tools (for macOS builds)
+## 📋 Prerequisites
 
-## Installation
+- Node.js 16.x or higher
+- A compatible Chromium-based browser (Chrome, Edge, or Brave)
+- Valid Twitter account
 
-### Pre-built Binaries
-
-Download the latest release for your platform:
-
-- **Windows**: Download the `.exe` installer or portable version
-- **macOS**: Download the `.dmg` file
-- **Linux**: Download the `.AppImage` or `.deb` package
-
-### Building from Source
+## 🔧 Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/twitter-scraper.git
+git clone https://github.com/izrake/twitter-scraper.git
 cd twitter-scraper
 ```
 
@@ -40,61 +33,96 @@ cd twitter-scraper
 npm install
 ```
 
-3. Build the application:
-```bash
-# Build for all platforms
-npm run build
-
-# Or build for specific platform
-npm run build:mac    # For macOS
-npm run build:win    # For Windows
-npm run build:linux  # For Linux
-```
-
-The built applications will be available in the `dist` directory.
-
-## Configuration
-
-1. Create a `.env` file based on `.env.example`:
+3. Create a `.env` file based on `.env.example`:
 ```bash
 cp .env.example .env
 ```
 
-2. Configure the MongoDB connection and other settings in the `.env` file.
+4. Build the application:
+```bash
+# For macOS
+npm run build:mac
 
-## Usage
+# For Windows
+npm run build:win
+
+# For Linux
+npm run build:linux
+```
+
+## 💻 Usage
 
 1. Launch the application
-2. Click "Start Twitter Authentication" to log in
-3. Use the different scraping options:
-   - Search Tweets: Enter keywords and number of tweets
-   - Scrape Profile: Enter Twitter username and tweet limit
-   - Home Timeline: Set number of tweets to scrape
+2. Log in with your Twitter credentials
+3. Configure your scraping parameters
+4. Start collecting data
 
-## Data Storage
+### Development
 
-- Tweets and profile data are stored in MongoDB
-- Temporary files are stored in the application data directory
-- Session data is preserved between app restarts
+To run the application in development mode:
 
-## Requirements
+```bash
+npm run dev
+```
 
-- MongoDB server (local or remote)
-- Internet connection
-- Twitter/X account for authentication
+## 🔐 Authentication
 
-## Troubleshooting
+This application requires users to authenticate with their Twitter credentials to:
+- Ensure ethical data collection
+- Comply with Twitter's terms of service
+- Provide accurate and reliable results
 
-1. **Login Issues**
-   - Clear the stored session using the logout button
-   - Restart the application
-   - Check your internet connection
+## 📄 License
 
-2. **Scraping Issues**
-   - Verify your MongoDB connection
-   - Check the tweet limits
-   - Ensure you're properly logged in
+This project is licensed under the MIT License with the following conditions:
 
-## License
+1. **Personal Use**: Free for personal, non-commercial use
+2. **Commercial Use**: Requires explicit permission from the author
+3. **Authentication**: Required for all usage
 
-MIT License - See LICENSE file for details 
+See the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 Guidelines
+
+- Follow the existing code style
+- Add unit tests for any new code
+- Update documentation as needed
+- Ensure all tests pass before submitting
+
+## ⚠️ Disclaimer
+
+This tool is for educational and research purposes only. Users are responsible for ensuring their use of this tool complies with Twitter's Terms of Service and applicable laws.
+
+## 🙏 Acknowledgments
+
+- [Electron](https://www.electronjs.org/)
+- [Playwright](https://playwright.dev/)
+- [Node.js](https://nodejs.org/)
+
+## 📞 Support
+
+For support, please:
+1. Check the [Issues](https://github.com/izrake/twitter-scraper/issues) page
+2. Create a new issue if your problem isn't already listed
+3. For commercial use inquiries, contact: scrapenetai@gmail.com
+
+## 🔄 Updates
+
+Stay updated with the latest version:
+```bash
+git pull origin main
+npm install
+```
+
+---
+Made with ❤️ by [Prashant Maurya](https://github.com/izrake)
