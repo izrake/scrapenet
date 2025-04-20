@@ -1670,6 +1670,59 @@
         .accept-license:hover {
             background-color: #0f84c7;
         }
+
+        /* API Delegation Styles */
+        .status-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0 black;
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #dc3545;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .status-indicator.enabled {
+            background-color: #28a745;
+        }
+        
+        .status-text {
+            flex-grow: 1;
+        }
+        
+        .status-text p {
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+        
+        .info-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0 black;
+        }
+        
+        .info-box pre {
+            background: white;
+            padding: 10px;
+            border: 2px solid black;
+            overflow-x: auto;
+        }
+        
+        #apiDocsLink {
+            color: #0d6efd;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -1692,10 +1745,11 @@
         </div>
 
         <div class="tabs">
-            <div class="tab active" data-tab="scrape">Scrape Options</div>
+            <div class="tab active" data-tab="scrape">Scrape</div>
             <div class="tab" data-tab="history">Scraping History</div>
             <div class="tab" data-tab="auto-scrape">Auto Scraping</div>
             <div class="tab" data-tab="chat">Chat Analysis</div>
+            <div class="tab" data-tab="settings">Settings</div>
             <!-- <div class="tab" data-tab="query">Natural Query</div> -->
         </div>
 
@@ -1989,9 +2043,53 @@
                 <div id="queryData" class="query-data"></div>
             </div>
         </div>
+
+        <!-- Add this new section for Settings after the other tab-content sections -->
+        <div id="settingsSection" class="tab-content">
+            <!-- API Delegation Settings -->
+            <div class="neo-card">
+                <h3 class="neo-title">API Delegation Settings</h3>
+                <p class="neo-description">Enable API delegation to allow external applications to use this scraper via HTTP requests.</p>
+                
+                <div class="status-container">
+                    <div class="status-indicator" id="delegationStatusIndicator"></div>
+                    <div class="status-text">
+                        <p>API Delegation: <span id="delegationStatus">Disabled</span></p>
+                        <p>Port: <span id="delegationPort">3000</span></p>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <button id="enableDelegationBtn" class="neo-button">Enable API Delegation</button>
+                    <button id="disableDelegationBtn" class="neo-button danger" style="display: none;">Disable API Delegation</button>
+                </div>
+                
+                <div class="info-box" id="delegationInfoBox" style="display: none;">
+                    <h4>API Usage Example</h4>
+                    <pre>
+curl -X POST http://localhost:<span id="apiPortExample">3000</span>/api/scrape/tweets \
+    -H "Content-Type: application/json" \
+    -d '{"query": "tesla", "limit": 100}'
+                    </pre>
+                    <p>View complete API documentation at <a id="apiDocsLink" href="#">http://localhost:<span id="apiDocsPort">3000</span>/api/docs</a></p>
+                    <p class="neo-description"><strong>Note:</strong> Maximum 500 tweets can be requested at once.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
+        console.log('Initial load');
+        
+        // Debug check for the electronAPI object
+        console.log('window.electronAPI available:', !!window.electronAPI);
+        if (window.electronAPI) {
+            console.log('Available methods:', Object.keys(window.electronAPI));
+            console.log('getDelegationStatus available:', !!window.electronAPI.getDelegationStatus);
+            console.log('enableDelegation available:', !!window.electronAPI.enableDelegation);
+            console.log('disableDelegation available:', !!window.electronAPI.disableDelegation);
+        }
+
         let currentStatus = 'not_ready';
         
         // UI Elements
@@ -2086,6 +2184,8 @@
                     loadLLMConfig();
                 } else if (tab.dataset.tab === 'query') {
                     document.getElementById('querySection').classList.add('active');
+                } else if (tab.dataset.tab === 'settings') {
+                    document.getElementById('settingsSection').classList.add('active');
                 }
             });
         });
@@ -3413,6 +3513,98 @@
             }
             
             // ... rest of your existing initialization code ...
+            
+            // Load delegation status
+            loadDelegationStatus();
+        });
+
+        // API Delegation Controls
+        const delegationStatusIndicator = document.getElementById('delegationStatusIndicator');
+        const delegationStatus = document.getElementById('delegationStatus');
+        const delegationPort = document.getElementById('delegationPort');
+        const enableDelegationBtn = document.getElementById('enableDelegationBtn');
+        const disableDelegationBtn = document.getElementById('disableDelegationBtn');
+        const delegationInfoBox = document.getElementById('delegationInfoBox');
+        const apiPortExample = document.getElementById('apiPortExample');
+        const apiDocsPort = document.getElementById('apiDocsPort');
+        const apiDocsLink = document.getElementById('apiDocsLink');
+        
+        // Load delegation status on startup
+        async function loadDelegationStatus() {
+            try {
+                console.log('Loading delegation status...');
+                const status = await window.electronAPI.getDelegationStatus();
+                console.log('Delegation status loaded:', status);
+                updateDelegationUI(status);
+            } catch (error) {
+                console.error('Failed to load delegation status:', error);
+            }
+        }
+        
+        // Update UI based on delegation status
+        function updateDelegationUI(status) {
+            console.log('Updating delegation UI with status:', status);
+            if (status.enabled) {
+                delegationStatusIndicator.classList.add('enabled');
+                delegationStatus.textContent = 'Enabled';
+                enableDelegationBtn.style.display = 'none';
+                disableDelegationBtn.style.display = 'inline-block';
+                delegationInfoBox.style.display = 'block';
+            } else {
+                delegationStatusIndicator.classList.remove('enabled');
+                delegationStatus.textContent = 'Disabled';
+                enableDelegationBtn.style.display = 'inline-block';
+                disableDelegationBtn.style.display = 'none';
+                delegationInfoBox.style.display = 'none';
+            }
+            
+            // Update port information
+            delegationPort.textContent = status.port;
+            apiPortExample.textContent = status.port;
+            apiDocsPort.textContent = status.port;
+            apiDocsLink.href = `http://localhost:${status.port}/api/docs`;
+        }
+        
+        // Enable delegation
+        enableDelegationBtn.addEventListener('click', async () => {
+            try {
+                console.log('Enable delegation button clicked');
+                const status = await window.electronAPI.enableDelegation();
+                console.log('Delegation enabled result:', status);
+                updateDelegationUI(status);
+                
+                // Show success message
+                showNotification('API Delegation Enabled', 'success');
+            } catch (error) {
+                console.error('Failed to enable delegation:', error);
+                showNotification('Failed to enable API delegation', 'error');
+            }
+        });
+        
+        // Disable delegation
+        disableDelegationBtn.addEventListener('click', async () => {
+            try {
+                const status = await window.electronAPI.disableDelegation();
+                updateDelegationUI(status);
+                
+                // Show success message
+                showNotification('API Delegation Disabled', 'success');
+            } catch (error) {
+                console.error('Failed to disable delegation:', error);
+                showNotification('Failed to disable API delegation', 'error');
+            }
+        });
+        
+        // Open API docs in browser
+        apiDocsLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            window.open(apiDocsLink.href, '_blank');
+        });
+        
+        // Load delegation status on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... existing code ...
+            loadDelegationStatus();
         });
     </script>
 </body>

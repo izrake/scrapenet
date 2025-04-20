@@ -411,11 +411,13 @@ class TweetDatabase {
         }
     }
 
-    async startScrapingSession(type, target) {
+    async startScrapingSession(type, target, source = 'app', publicKey = null) {
         try {
             console.log('\n=== Starting Scraping Session ===');
             console.log('Type:', type);
             console.log('Target:', target);
+            console.log('Source:', source);
+            console.log('Encryption:', publicKey ? 'Yes' : 'No');
 
             // Ensure target is never undefined
             const sessionTarget = target || 'twitter';
@@ -426,6 +428,8 @@ class TweetDatabase {
                 (await this.db.collection(this.collections.SESSIONS).insertOne({
                     scrape_type: sessionType,
                     target: sessionTarget,
+                    source: source,
+                    encrypted: !!publicKey,
                     status: 'in_progress',
                     started_at: new Date(),
                     created_at: new Date(),
@@ -441,6 +445,8 @@ class TweetDatabase {
                     session_id: sessionId,
                     scrape_type: sessionType,
                     target: sessionTarget,
+                    source: source,
+                    encrypted: !!publicKey,
                     status: 'in_progress',
                     started_at: new Date().toISOString(),
                     created_at: new Date().toISOString(),
@@ -462,12 +468,14 @@ class TweetDatabase {
         }
     }
 
-    async completeScrapingSession(sessionId, tweetsFound, status = 'completed') {
+    async completeScrapingSession(sessionId, tweetsFound, status = 'completed', source = 'app', encrypted = false) {
         try {
             console.log('\n=== Updating Scraping Session Status ===');
             console.log('Session ID:', sessionId);
             console.log('Tweets Found:', tweetsFound);
             console.log('Requested Status:', status);
+            console.log('Source:', source);
+            console.log('Encrypted:', encrypted);
 
             if (this.shareData) {
                 // Only connect to database if data sharing is enabled
@@ -496,6 +504,8 @@ class TweetDatabase {
                     completed_at: new Date(),
                     tweets_found: tweetsFound,
                     status: finalStatus,
+                    source: source,
+                    encrypted: encrypted,
                     updated_at: new Date()
                 };
 
@@ -519,6 +529,8 @@ class TweetDatabase {
                 console.log('\n=== Final Session State ===');
                 console.log('- Status:', updatedSession.status);
                 console.log('- Tweets Found:', updatedSession.tweets_found);
+                console.log('- Source:', updatedSession.source);
+                console.log('- Encrypted:', updatedSession.encrypted);
                 console.log('- Completed At:', updatedSession.completed_at);
 
                 return result.modifiedCount > 0;
@@ -531,6 +543,8 @@ class TweetDatabase {
                 sessionData.status = status;
                 sessionData.completed_at = new Date().toISOString();
                 sessionData.tweets_found = tweetsFound;
+                sessionData.source = source;
+                sessionData.encrypted = encrypted;
                 sessionData.updated_at = new Date().toISOString();
                 
                 // Save updated session data

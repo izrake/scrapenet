@@ -121,7 +121,7 @@ async function createMainWindow() {
 
     // Initialize core services
     scraper = new TwitterScraper();
-    apiServer = new APIServer();
+    apiServer = new APIServer(scraper);
     dataStore = new DataStore();
     db = new TweetDatabase();
     chatManager = new ChatManager(db, app.getPath('userData'));
@@ -184,6 +184,7 @@ async function createMainWindow() {
     // Store autoScraper in the global scope
     global.autoScraper = autoScraper;
 
+    await apiServer.start();
     await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 }
 
@@ -647,6 +648,28 @@ ipcMain.handle('license-activated', async () => {
         licenseWindow = null;
     }
     await createMainWindow();
+});
+
+// Add these event handlers near other ipcMain handlers
+ipcMain.handle('get-delegation-status', async () => {
+    console.log('get-delegation-status handler called');
+    const status = apiServer.getDelegationStatus();
+    console.log('Delegation status:', status);
+    return status;
+});
+
+ipcMain.handle('enable-delegation', async () => {
+    console.log('enable-delegation handler called');
+    const result = apiServer.enableDelegation();
+    console.log('Delegation enabled:', result);
+    return result;
+});
+
+ipcMain.handle('disable-delegation', async () => {
+    console.log('disable-delegation handler called');
+    const result = apiServer.disableDelegation();
+    console.log('Delegation disabled:', result);
+    return result;
 });
 
 // Export for TypeScript support

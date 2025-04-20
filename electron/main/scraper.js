@@ -935,15 +935,17 @@ class TwitterScraper {
         }
     }
 
-    async saveTweets(tweets, type, target) {
+    async saveTweets(tweets, type, target, source = 'app', publicKey = null) {
         try {
             console.log('=== Starting Tweet Storage Process ===');
             console.log(`Type: ${type}`);
             console.log(`Target: ${target}`);
+            console.log(`Source: ${source}`);
+            console.log(`Encryption: ${publicKey ? 'Yes' : 'No'}`);
             console.log(`Total tweets to save: ${tweets.length}`);
             
             // Start a new scraping session
-            const sessionId = await this.db.startScrapingSession(type, target);
+            const sessionId = await this.db.startScrapingSession(type, target, source, publicKey);
             console.log(`Created scraping session with ID: ${sessionId}`);
 
             // If this is a profile scrape, save the profile information first
@@ -972,6 +974,14 @@ class TwitterScraper {
                 try {
                     console.log(`\nProcessing tweet ${i + 1}/${tweets.length}`);
                     console.log(`URL: ${tweet.url}`);
+                    
+                    // For API requests with encryption, add encryption metadata
+                    if (source === 'api' && publicKey) {
+                        tweet.metadata = tweet.metadata || {};
+                        tweet.metadata.encrypted = true;
+                        tweet.metadata.encryptionDate = new Date().toISOString();
+                    }
+                    
                     await this.db.saveTweet(tweet, sessionId);
                     savedCount++;
                     console.log(`Successfully saved tweet ${i + 1}`);
@@ -992,7 +1002,9 @@ class TwitterScraper {
             await this.db.completeScrapingSession(
                 sessionId,
                 savedCount,
-                status
+                status,
+                source,
+                !!publicKey
             );
 
             console.log('=== Storage Process Complete ===');
@@ -1001,12 +1013,24 @@ class TwitterScraper {
                 sessionId,
                 savedCount,
                 errorCount,
-                status
+                status,
+                source,
+                encrypted: !!publicKey
             };
         } catch (error) {
             console.error('=== Storage Process Failed ===');
             console.error('Error:', error.message);
             console.error('Stack:', error.stack);
+            throw error;
+        }
+    }
+
+    async getTweetsBySession(sessionId) {
+        try {
+            console.log('Getting tweets for session:', sessionId);
+            return await this.db.getTweetsBySession(sessionId);
+        } catch (error) {
+            console.error('Error getting tweets for session:', error);
             throw error;
         }
     }

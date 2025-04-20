@@ -1,5 +1,12 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
 contextBridge.exposeInMainWorld('electronAPI', {
     // ... existing exposed methods ...
+    
+    // API delegation methods
+    getDelegationStatus: () => ipcRenderer.invoke('get-delegation-status'),
+    enableDelegation: () => ipcRenderer.invoke('enable-delegation'),
+    disableDelegation: () => ipcRenderer.invoke('disable-delegation'),
     
     // Auto-scraping methods
     startAutoScraping: (options) => ipcRenderer.invoke('start-auto-scraping', options),

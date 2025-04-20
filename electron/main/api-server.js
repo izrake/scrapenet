@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 
 class APIServer {
     constructor(scraper) {
@@ -7,6 +8,7 @@ class APIServer {
         this.app = express();
         this.server = null;
         this.port = process.env.API_PORT || 3000;
+        this.isDelegationEnabled = false;
 
         // Middleware
         this.app.use(cors());
@@ -20,6 +22,18 @@ class APIServer {
                         method: 'GET',
                         description: 'Get current scraper status'
                     },
+                    '/api/delegation/status': {
+                        method: 'GET',
+                        description: 'Get API delegation status'
+                    },
+                    '/api/delegation/enable': {
+                        method: 'POST',
+                        description: 'Enable API delegation'
+                    },
+                    '/api/delegation/disable': {
+                        method: 'POST',
+                        description: 'Disable API delegation'
+                    },
                     '/api/auth/twitter/start': {
                         method: 'POST',
                         description: 'Start Twitter authentication process'
@@ -29,7 +43,8 @@ class APIServer {
                         description: 'Search and scrape tweets',
                         body: {
                             query: 'Search query string',
-                            limit: 'Number of tweets to fetch (default: 10)'
+                            limit: 'Number of tweets to fetch (default: 10, max: 500)',
+                            publicKey: '(Optional) RSA public key for response encryption'
                         }
                     },
                     '/api/scrape/profile': {
@@ -37,14 +52,16 @@ class APIServer {
                         description: 'Scrape user profile and tweets',
                         body: {
                             username: 'Twitter username (without @)',
-                            limit: 'Number of tweets to fetch (default: 10)'
+                            limit: 'Number of tweets to fetch (default: 10, max: 500)',
+                            publicKey: '(Optional) RSA public key for response encryption'
                         }
                     },
                     '/api/scrape/home': {
                         method: 'POST',
                         description: 'Scrape home timeline tweets',
                         body: {
-                            limit: 'Number of tweets to fetch (default: 10)'
+                            limit: 'Number of tweets to fetch (default: 10, max: 500)',
+                            publicKey: '(Optional) RSA public key for response encryption'
                         }
                     }
                 }
@@ -56,11 +73,45 @@ class APIServer {
             try {
                 const status = this.scraper.isLoggedIn ? 'ready' : 'not_ready';
                 const message = this.scraper.isLoggedIn ? 'Ready to scrape' : 'Twitter authentication required';
-                res.json({ status, message });
+                res.json({ 
+                    status, 
+                    message,
+                    delegation: {
+                        enabled: this.isDelegationEnabled,
+                        port: this.port
+                    }
+                });
             } catch (error) {
                 console.error('Status check error:', error);
                 res.status(500).json({ error: 'Failed to check status' });
             }
+        });
+
+        // Delegation status endpoint
+        this.app.get('/api/delegation/status', (req, res) => {
+            res.json({
+                enabled: this.isDelegationEnabled,
+                port: this.port
+            });
+        });
+
+        // Enable delegation endpoint
+        this.app.post('/api/delegation/enable', (req, res) => {
+            this.isDelegationEnabled = true;
+            res.json({
+                status: 'success',
+                message: 'API delegation enabled',
+                port: this.port
+            });
+        });
+
+        // Disable delegation endpoint
+        this.app.post('/api/delegation/disable', (req, res) => {
+            this.isDelegationEnabled = false;
+            res.json({
+                status: 'success',
+                message: 'API delegation disabled'
+            });
         });
 
         // Authentication endpoint
@@ -84,13 +135,49 @@ class APIServer {
                     return res.status(403).json({ error: 'Not logged in to Twitter' });
                 }
 
-                const { query, limit = 10 } = req.body;
+                if (!this.isDelegationEnabled) {
+                    return res.status(403).json({ error: 'API delegation is not enabled' });
+                }
+
+                const { query, limit = 10, publicKey } = req.body;
                 if (!query) {
                     return res.status(400).json({ error: 'Query parameter is required' });
                 }
 
-                const tweets = await this.scraper.scrapeTweets(query, limit);
-                res.json({ status: 'success', tweets });
+                // Enforce tweet limit
+                const tweetLimit = Math.min(parseInt(limit) || 10, 500);
+                
+                // Perform the scraping operation
+                const scrapingResult = await this.scraper.scrapeTweets(query, tweetLimit);
+                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId);
+                
+                // Mark that this request came from the API
+                const source = 'api';
+                
+                if (publicKey) {
+                    try {
+                        // Save tweets with encryption info to indicate it's from API
+                        await this.scraper.saveTweets(tweets, 'search', query, source, publicKey);
+                        
+                        // Return encrypted response
+                        const encryptedData = this.encryptData(tweets, publicKey);
+                        res.json({ 
+                            status: 'success', 
+                            encrypted: true,
+                            data: encryptedData
+                        });
+                    } catch (error) {
+                        console.error('Encryption error:', error);
+                        return res.status(400).json({ error: 'Invalid public key or encryption error' });
+                    }
+                } else {
+                    // Save tweets with source info but no encryption
+                    await this.scraper.saveTweets(tweets, 'search', query, source);
+                    res.json({ 
+                        status: 'success', 
+                        tweets: tweets
+                    });
+                }
             } catch (error) {
                 console.error('Tweet scraping error:', error);
                 res.status(500).json({ error: 'Failed to scrape tweets: ' + error.message });
@@ -104,13 +191,58 @@ class APIServer {
                     return res.status(403).json({ error: 'Not logged in to Twitter' });
                 }
 
-                const { username, limit = 10 } = req.body;
+                if (!this.isDelegationEnabled) {
+                    return res.status(403).json({ error: 'API delegation is not enabled' });
+                }
+
+                const { username, limit = 10, publicKey } = req.body;
                 if (!username) {
                     return res.status(400).json({ error: 'Username parameter is required' });
                 }
 
-                const data = await this.scraper.scrapeProfile(username, limit);
-                res.json({ status: 'success', data });
+                // Enforce tweet limit
+                const tweetLimit = Math.min(parseInt(limit) || 10, 500);
+                
+                // Perform the scraping operation
+                const scrapingResult = await this.scraper.scrapeProfile(username, tweetLimit);
+                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId);
+                
+                // Get profile info if available
+                const profileInfo = scrapingResult.profile || await this.scraper.extractProfileInfo();
+                
+                // Format the full response data
+                const responseData = {
+                    profile: profileInfo,
+                    tweets: tweets
+                };
+                
+                // Mark that this request came from the API
+                const source = 'api';
+                
+                if (publicKey) {
+                    try {
+                        // Save tweets with encryption info to indicate it's from API
+                        await this.scraper.saveTweets(tweets, 'profile', username, source, publicKey);
+                        
+                        // Return encrypted response
+                        const encryptedData = this.encryptData(responseData, publicKey);
+                        res.json({ 
+                            status: 'success', 
+                            encrypted: true,
+                            data: encryptedData
+                        });
+                    } catch (error) {
+                        console.error('Encryption error:', error);
+                        return res.status(400).json({ error: 'Invalid public key or encryption error' });
+                    }
+                } else {
+                    // Save tweets with source info but no encryption
+                    await this.scraper.saveTweets(tweets, 'profile', username, source);
+                    res.json({ 
+                        status: 'success', 
+                        data: responseData
+                    });
+                }
             } catch (error) {
                 console.error('Profile scraping error:', error);
                 res.status(500).json({ error: 'Failed to scrape profile: ' + error.message });
@@ -124,14 +256,109 @@ class APIServer {
                     return res.status(403).json({ error: 'Not logged in to Twitter' });
                 }
 
-                const { limit = 10 } = req.body;
-                const tweets = await this.scraper.scrapeHomeTimeline(limit);
-                res.json({ status: 'success', tweets });
+                if (!this.isDelegationEnabled) {
+                    return res.status(403).json({ error: 'API delegation is not enabled' });
+                }
+
+                const { limit = 10, publicKey } = req.body;
+                
+                // Enforce tweet limit
+                const tweetLimit = Math.min(parseInt(limit) || 10, 500);
+                
+                // Perform the scraping operation
+                const scrapingResult = await this.scraper.scrapeHomeTimeline(tweetLimit);
+                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId);
+                
+                // Mark that this request came from the API
+                const source = 'api';
+                
+                if (publicKey) {
+                    try {
+                        // Save tweets with encryption info to indicate it's from API
+                        await this.scraper.saveTweets(tweets, 'home', 'timeline', source, publicKey);
+                        
+                        // Return encrypted response
+                        const encryptedData = this.encryptData(tweets, publicKey);
+                        res.json({ 
+                            status: 'success', 
+                            encrypted: true,
+                            data: encryptedData
+                        });
+                    } catch (error) {
+                        console.error('Encryption error:', error);
+                        return res.status(400).json({ error: 'Invalid public key or encryption error' });
+                    }
+                } else {
+                    // Save tweets with source info but no encryption
+                    await this.scraper.saveTweets(tweets, 'home', 'timeline', source);
+                    res.json({ 
+                        status: 'success', 
+                        tweets: tweets
+                    });
+                }
             } catch (error) {
                 console.error('Home timeline scraping error:', error);
                 res.status(500).json({ error: 'Failed to scrape home timeline: ' + error.message });
             }
         });
+    }
+    
+    // Method to encrypt data using the client's public key
+    encryptData(data, publicKey) {
+        try {
+            // Convert data to JSON string
+            const dataString = JSON.stringify(data);
+            
+            // Generate a random symmetric key for encrypting the actual data
+            const symmetricKey = crypto.randomBytes(32); // 256 bits for AES-256
+            const iv = crypto.randomBytes(16); // Initialization vector
+            
+            // Encrypt the data with the symmetric key
+            const cipher = crypto.createCipheriv('aes-256-cbc', symmetricKey, iv);
+            let encryptedData = cipher.update(dataString, 'utf8', 'base64');
+            encryptedData += cipher.final('base64');
+            
+            // Encrypt the symmetric key with the client's public key
+            const encryptedKey = crypto.publicEncrypt(
+                {
+                    key: publicKey,
+                    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+                },
+                symmetricKey
+            );
+            
+            // Return all components needed for decryption
+            return {
+                encryptedData,
+                encryptedKey: encryptedKey.toString('base64'),
+                iv: iv.toString('base64')
+            };
+        } catch (error) {
+            console.error('Encryption error:', error);
+            throw new Error('Failed to encrypt data: ' + error.message);
+        }
+    }
+
+    enableDelegation() {
+        console.log('API server enableDelegation called');
+        this.isDelegationEnabled = true;
+        console.log('API delegation enabled, isDelegationEnabled =', this.isDelegationEnabled);
+        return { enabled: true, port: this.port };
+    }
+
+    disableDelegation() {
+        console.log('API server disableDelegation called');
+        this.isDelegationEnabled = false;
+        console.log('API delegation disabled, isDelegationEnabled =', this.isDelegationEnabled);
+        return { enabled: false };
+    }
+
+    getDelegationStatus() {
+        console.log('API server getDelegationStatus called, isDelegationEnabled =', this.isDelegationEnabled);
+        return {
+            enabled: this.isDelegationEnabled,
+            port: this.port
+        };
     }
 
     async start() {
