@@ -568,18 +568,203 @@ class ChatManager {
         }
     }
 
+    async parseGoalsFromQuery(query) {
+        try {
+            console.log('Parsing goals from query:', query);
+            
+            const systemPrompt = {
+                role: 'system',
+                content: `You are an AI assistant that helps users analyze Twitter data. Your job is to break down user requests into clear, actionable goals and steps.
+
+                Given a user's query about Twitter data, you should:
+                1. Identify the main objective
+                2. Break it down into 2-4 sequential goals/steps
+                3. Format your response as follows:
+
+                I'll help you [main objective]. Here's my plan:
+
+                **Goals:**
+                1. [First goal]: [Brief explanation]
+                2. [Second goal]: [Brief explanation]
+                3. [Third goal, if applicable]: [Brief explanation]
+
+                Would you like me to proceed with this plan?
+
+                IMPORTANT GUIDELINES:
+                - Be specific and clear about what you'll analyze
+                - Focus only on Twitter data analysis goals
+                - Keep explanations concise but informative
+                - Make sure goals are sequential and build on each other
+                - Limit to 2-4 goals maximum
+                - If the query is very simple, still break it into at least 2 logical steps
+                - Do not reference any UI elements or technical implementation details
+                `
+            };
+
+            const userPrompt = {
+                role: 'user',
+                content: `Parse this Twitter data analysis request into goals: ${query}`
+            };
+
+            const response = await this.queryLLM([systemPrompt, userPrompt]);
+            console.log('Goals parsed from LLM:', response);
+            
+            return {
+                success: true,
+                goalsResponse: response
+            };
+        } catch (error) {
+            console.error('Error parsing goals:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async executeGoal(goal, tweets, originalQuery) {
+        console.log(`Executing goal: ${goal}`);
+        
+        const systemPrompt = {
+            role: 'system',
+            content: `You are an AI assistant analyzing Twitter data. You're currently executing a specific analysis goal.
+                      
+                      Focus only on completing the current goal. Be thorough yet concise in your analysis.
+                      Use specific examples from the provided tweets.
+                      Format your response well with headings, bullet points, and paragraphs as appropriate.
+                      
+                      Original user query: ${originalQuery}
+                      Current goal to execute: ${goal}`
+        };
+
+        const userPrompt = {
+            role: 'user',
+            content: `Complete this analysis goal using these tweets: ${JSON.stringify(tweets.slice(0, 50))}`
+        };
+
+        const result = await this.queryLLM([systemPrompt, userPrompt]);
+        console.log('Goal execution result length:', result ? result.length : 0);
+        
+        return result;
+    }
+
     initializeHandlers() {
         // Store handlers so we can remove them later
         this.handlers = [
             { channel: 'save-llm-config', handler: async (event, config) => await this.saveConfig(config) },
             { channel: 'get-llm-config', handler: async () => this.config },
-            { channel: 'chat-query', handler: async (event, { query, conversationId, timeframe = null }) => {
+            { channel: 'chat-query', handler: async (event, { query, conversationId, timeframe = null, approveGoals = false, executingGoalIndex = null }) => {
                 try {
-                    console.log('Received chat query:', { query, conversationId, timeframe });
+                    console.log('Received chat query:', { query, conversationId, timeframe, approveGoals, executingGoalIndex });
                     let conversation = this.conversations.get(conversationId);
                     if (!conversation) {
+                        // Initialize a new conversation
+                        console.log(`Creating new conversation with ID: ${conversationId}`);
                         conversation = { state: 'initial', context: {} };
                         this.conversations.set(conversationId, conversation);
+                    } else {
+                        console.log(`Using existing conversation with ID: ${conversationId}, state: ${conversation.state}`);
+                    }
+
+                    // If this is a goal approval response
+                    if (approveGoals) {
+                        console.log('User approved goals, setting up for execution');
+                        conversation.state = 'executing_goals';
+                        conversation.context.currentGoalIndex = 0;
+                        conversation.context.originalQuery = query;
+                        
+                        // Execute natural query to get tweets for analysis
+                        console.log('Getting tweets for goal execution...');
+                        const queryResults = await this.processNaturalQuery(query, timeframe);
+                        conversation.context.tweets = queryResults.results;
+                        conversation.context.queryDetails = queryResults.query;
+                        conversation.context.tweetCount = queryResults.count;
+                        
+                        // Execute all goals sequentially
+                        console.log(`Executing all ${conversation.context.goals.length} goals for conversation ${conversationId}`);
+                        
+                        const allGoalResults = [];
+                        
+                        // Execute each goal one by one
+                        for (let i = 0; i < conversation.context.goals.length; i++) {
+                            console.log(`Executing goal ${i + 1}/${conversation.context.goals.length}`);
+                            
+                            // Send progress update before executing this goal
+                            if (event.sender) {
+                                event.sender.send('goal-execution-progress', {
+                                    goalIndex: i,
+                                    totalGoals: conversation.context.goals.length,
+                                    goal: conversation.context.goals[i],
+                                    status: 'executing',
+                                    conversationId: conversationId
+                                });
+                                
+                                // Add a small delay to ensure UI can process
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                            
+                            // Execute the goal
+                            const goalResult = await this.executeGoal(
+                                conversation.context.goals[i], 
+                                conversation.context.tweets,
+                                conversation.context.originalQuery
+                            );
+                            
+                            // Store the result
+                            allGoalResults.push({
+                                goalIndex: i,
+                                goal: conversation.context.goals[i],
+                                result: goalResult
+                            });
+                            
+                            // Send progress update after executing this goal
+                            if (event.sender) {
+                                event.sender.send('goal-execution-progress', {
+                                    goalIndex: i,
+                                    totalGoals: conversation.context.goals.length,
+                                    goal: conversation.context.goals[i],
+                                    status: 'completed',
+                                    result: goalResult,
+                                    conversationId: conversationId
+                                });
+                                
+                                // Add a small delay to ensure UI can process
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                        }
+                        
+                        // Reset state after execution
+                        conversation.state = 'initial';
+                        
+                        // Return all goal results
+                        return {
+                            success: true,
+                            isGoalExecution: true,
+                            isComplete: true,
+                            allGoalResults: allGoalResults,
+                            totalGoals: conversation.context.goals.length,
+                            queryDetails: queryResults.query,
+                            tweetCount: queryResults.count
+                        };
+                    }
+                    
+                    // If we're in the process of executing goals
+                    if (executingGoalIndex !== null && conversation.state === 'executing_goals') {
+                        // This path won't be used with automatic execution
+                        // But kept for backward compatibility
+                        console.log('Legacy goal execution path called - should not happen');
+                        
+                        // Reset state
+                        conversation.state = 'initial';
+                        
+                        return {
+                            success: true,
+                            isGoalExecution: true,
+                            isComplete: true,
+                            response: "All analysis goals have been completed. Is there anything else you'd like to know about the data?",
+                            queryDetails: conversation.context.queryDetails,
+                            tweetCount: conversation.context.tweetCount
+                        };
                     }
 
                     // Handle time-based queries
@@ -603,7 +788,41 @@ class ChatManager {
                         timeframe = timeframe || query; // Use the provided timeframe
                         conversation.state = 'initial';
                     }
-
+                    
+                    // Parse the query into goals first
+                    console.log('Parsing query into goals...');
+                    const goalsResult = await this.parseGoalsFromQuery(query);
+                    
+                    if (goalsResult.success) {
+                        // Extract goals from response
+                        const goalResponse = goalsResult.goalsResponse;
+                        
+                        // Find the list of goals in the response using regex
+                        const goalRegex = /\*\*Goals:\*\*\s*([\s\S]+?)(?=\n\n|$)/;
+                        const match = goalResponse.match(goalRegex);
+                        
+                        if (match && match[1]) {
+                            // Extract individual goals
+                            const goalList = match[1].split(/\n\d+\.\s+/).filter(Boolean);
+                            console.log('Extracted goals:', goalList);
+                            
+                            // Store the goals in the conversation context
+                            conversation.state = 'awaiting_goal_approval';
+                            conversation.context.goals = goalList;
+                            conversation.context.originalQuery = query;
+                            
+                            return {
+                                success: true,
+                                awaitingGoalApproval: true,
+                                goalsResponse: goalResponse,
+                                conversationId: conversationId
+                            };
+                        }
+                    }
+                    
+                    // Fall back to regular query if goal parsing fails
+                    console.log('Falling back to regular query...');
+                    
                     // Execute the natural query to get relevant tweets
                     console.log('Processing natural query...');
                     const queryResults = await this.processNaturalQuery(query, timeframe);

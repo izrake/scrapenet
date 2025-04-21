@@ -2120,6 +2120,186 @@
             line-height: 1.5;
             white-space: pre-wrap;
         }
+
+        /* Agentic Workflow Styles */
+        .goals-message {
+            border: 3px solid #1E88E5;
+            border-radius: 15px;
+            background-color: #f0f8ff;
+        }
+
+        .goal-approval-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #1E88E5;
+        }
+
+        .approve-goals-btn, .continue-goal-btn {
+            background: #4CAF50;
+            color: white;
+            border: 2px solid black;
+            padding: 10px 16px;
+            font-weight: bold;
+            box-shadow: 3px 3px 0 black;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+
+        .decline-goals-btn {
+            background: #F44336;
+            color: white;
+            border: 2px solid black;
+            padding: 10px 16px;
+            font-weight: bold;
+            box-shadow: 3px 3px 0 black;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+
+        .approve-goals-btn:hover:not(:disabled), 
+        .decline-goals-btn:hover:not(:disabled),
+        .continue-goal-btn:hover:not(:disabled) {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0 black;
+        }
+
+        .approve-goals-btn:disabled, 
+        .decline-goals-btn:disabled,
+        .continue-goal-btn:disabled {
+            background: #e0e0e0;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .goal-header {
+            background: #f0f8ff;
+            border: 2px solid #1E88E5;
+            border-left: 6px solid #1E88E5;
+            padding: 10px 15px;
+            margin: 15px 0 5px 0;
+            border-radius: 6px;
+        }
+
+        .goal-header h3 {
+            margin: 0;
+            color: #1E88E5;
+            font-size: 1.2em;
+        }
+
+        .goal-result {
+            margin-top: 0;
+            border-top-left-radius: 0;
+            border-color: #1E88E5;
+        }
+
+        .continue-goal-btn {
+            display: block;
+            margin: 15px auto 5px auto;
+        }
+
+        /* Styles for sequential goal display */
+        .all-goals-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 15px 0;
+        }
+
+        .goal-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .completion-marker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background: #e8f5e9;
+            border: 2px solid #4CAF50;
+            border-radius: 30px;
+        }
+
+        .checkmark {
+            background-color: #4CAF50;
+            color: white;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+
+        .completion-text {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        /* Goal Progress Styles */
+        .goal-progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 15px 0;
+        }
+
+        .goal-progress-container.completed {
+            opacity: 0.8;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .goal-result.in-progress {
+            background-color: #f5f5f5;
+            border-color: #90CAF9;
+            min-height: 60px;
+        }
+
+        .goal-loading {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            font-style: italic;
+            color: #1E88E5;
+        }
+
+        .goal-loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e0e0e0;
+            border-top: 3px solid #1E88E5;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Transition effects for goal results */
+        .goal-result {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .goal-section {
+            animation: fade-in 0.5s ease-in-out;
+        }
+
+        @keyframes fade-in {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -2494,6 +2674,7 @@
         let countdownInterval = null;
         let currentConversationId = Date.now().toString();
         let awaitingTimeframe = false;
+        let activeProgressListener = false;
 
         // Scraping status management
         let isScrapingInProgress = false;
@@ -3605,6 +3786,11 @@
             const message = chatInput.value.trim();
             if (!message) return;
             
+            // Reset state for new query, unless we're awaiting a timeframe
+            if (!awaitingTimeframe) {
+                resetChatState();
+            }
+            
             // Set up variables for error handling
             let progressSteps = null;
 
@@ -3630,6 +3816,7 @@
                 const retrieveStep = progressSteps.querySelector('[data-step="retrieve"]');
                 retrieveStep.classList.add('active');
                 
+                console.log('Sending chat query with conversation ID:', currentConversationId);
                 const response = await window.electronAPI.chatQuery({
                     query: message,
                     conversationId: currentConversationId,
@@ -3650,6 +3837,123 @@
                     promptDiv.className = 'message bot-message';
                     promptDiv.innerHTML = formatResponseText(response.prompt);
                     chatMessages.appendChild(promptDiv);
+                } else if (response.awaitingGoalApproval) {
+                    // Display the goals for user approval
+                    const goalsDiv = document.createElement('div');
+                    goalsDiv.className = 'message bot-message goals-message';
+                    goalsDiv.innerHTML = formatResponseText(response.goalsResponse);
+                    
+                    // Add approval buttons
+                    const approvalButtons = document.createElement('div');
+                    approvalButtons.className = 'goal-approval-buttons';
+                    approvalButtons.innerHTML = `
+                        <button class="approve-goals-btn">Yes, proceed with this plan</button>
+                        <button class="decline-goals-btn">No, I'd like a different approach</button>
+                    `;
+                    goalsDiv.appendChild(approvalButtons);
+                    chatMessages.appendChild(goalsDiv);
+                    
+                    // Add event listeners for approval buttons
+                    goalsDiv.querySelector('.approve-goals-btn').addEventListener('click', async (e) => {
+                        e.target.disabled = true;
+                        
+                        // Remove the buttons
+                        approvalButtons.remove();
+                        
+                        // Add a confirmation message
+                        const confirmationDiv = document.createElement('div');
+                        confirmationDiv.className = 'message user-message';
+                        confirmationDiv.textContent = 'I approve this plan. Please proceed.';
+                        chatMessages.appendChild(confirmationDiv);
+                        
+                        // Make sure we remove any existing containers first
+                        const existingContainer = document.getElementById('goalProgressContainer');
+                        if (existingContainer) {
+                            console.log('Removing existing goal progress container');
+                            existingContainer.remove();
+                        }
+                        
+                        // Add container for goal progress and results
+                        const goalProgressContainer = document.createElement('div');
+                        goalProgressContainer.className = 'goal-progress-container';
+                        goalProgressContainer.id = 'goalProgressContainer';
+                        chatMessages.appendChild(goalProgressContainer);
+                        
+                        // Clean up any existing listeners before setting up new ones
+                        if (activeProgressListener) {
+                            console.log('Removing existing progress listener');
+                            window.electronAPI.removeGoalExecutionProgressListener();
+                            activeProgressListener = false;
+                        }
+                        
+                        // Setup progress listener
+                        console.log('Setting up goal progress listener for conversation:', currentConversationId);
+                        const progressListenerActive = setupGoalProgressListener(currentConversationId);
+                        
+                        // Execute the approved goals
+                        try {
+                            console.log('Sending goal approval for conversation ID:', currentConversationId);
+                            const goalExecutionResponse = await window.electronAPI.chatQuery({
+                                query: message,
+                                conversationId: currentConversationId,
+                                approveGoals: true
+                            });
+                            
+                            // Remove progress listener
+                            window.electronAPI.removeGoalExecutionProgressListener();
+                            activeProgressListener = false;
+                            
+                            // Add completion marker if needed
+                            const container = document.getElementById('goalProgressContainer');
+                            if (container) {
+                                const completionMarker = document.createElement('div');
+                                completionMarker.className = 'completion-marker';
+                                completionMarker.innerHTML = '<div class="checkmark">✓</div><div class="completion-text">All analysis goals completed</div>';
+                                container.appendChild(completionMarker);
+                            }
+                            
+                            // Reset state for next query
+                            resetChatState();
+                            
+                        } catch (error) {
+                            console.error('Error executing goals:', error);
+                            
+                            // Remove progress listener
+                            window.electronAPI.removeGoalExecutionProgressListener();
+                            activeProgressListener = false;
+                            
+                            // Add error message
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'message bot-message error';
+                            errorDiv.innerHTML = formatResponseText('Error executing goals: ' + error.message);
+                            chatMessages.appendChild(errorDiv);
+                            
+                            // Reset state for next query
+                            resetChatState();
+                        }
+                    });
+                    
+                    // Handling for declining the goals
+                    goalsDiv.querySelector('.decline-goals-btn').addEventListener('click', () => {
+                        // Remove the buttons
+                        approvalButtons.remove();
+                        
+                        // Add a decline message
+                        const declineDiv = document.createElement('div');
+                        declineDiv.className = 'message user-message';
+                        declineDiv.textContent = 'I would like a different approach. Let me rephrase my question.';
+                        chatMessages.appendChild(declineDiv);
+                        
+                        // Reset the chat state for a new query
+                        resetChatState();
+                        
+                        // Re-enable the input
+                        chatInput.disabled = false;
+                        sendMessage.disabled = false;
+                    });
+                } else if (response.isGoalExecution) {
+                    // Handle goal execution response
+                    handleGoalExecutionResponse(response);
                 } else {
                     awaitingTimeframe = false;
                     
@@ -3712,9 +4016,12 @@
                 errorDiv.innerHTML = formatResponseText('Error: ' + error.message);
                 chatMessages.appendChild(errorDiv);
                 
-                // Reset conversation
-                currentConversationId = Date.now().toString();
-                awaitingTimeframe = false;
+                // Reset chat state if not awaiting timeframe
+                if (!awaitingTimeframe) {
+                    resetChatState();
+                } else {
+                    awaitingTimeframe = false;
+                }
             } finally {
                 // Re-enable UI
                 chatInput.disabled = false;
@@ -3722,6 +4029,80 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         });
+
+        // Function to display all goal results sequentially
+        function displayAllGoalResults(goalResults) {
+            console.log('Displaying all goal results:', goalResults);
+            
+            if (!goalResults || !goalResults.length) {
+                console.error('No goal results to display');
+                return;
+            }
+            
+            // Add container for all goals
+            const goalContainer = document.createElement('div');
+            goalContainer.className = 'all-goals-container';
+            chatMessages.appendChild(goalContainer);
+            
+            // Process each goal result
+            goalResults.forEach((goalData, index) => {
+                // Create goal section
+                const goalSection = document.createElement('div');
+                goalSection.className = 'goal-section';
+                
+                // Add goal header
+                const goalHeader = document.createElement('div');
+                goalHeader.className = 'goal-header';
+                goalHeader.innerHTML = `<h3>Goal ${index + 1}/${goalResults.length}: ${goalData.goal.split(':')[0]}</h3>`;
+                goalSection.appendChild(goalHeader);
+                
+                // Add goal content
+                const goalContent = document.createElement('div');
+                goalContent.className = 'message bot-message goal-result';
+                goalContent.innerHTML = formatResponseText(goalData.result);
+                goalSection.appendChild(goalContent);
+                
+                // Add to container
+                goalContainer.appendChild(goalSection);
+                
+                // Add completion marker if this is the last goal
+                if (index === goalResults.length - 1) {
+                    const completionMarker = document.createElement('div');
+                    completionMarker.className = 'completion-marker';
+                    completionMarker.innerHTML = '<div class="checkmark">✓</div><div class="completion-text">All analysis goals completed</div>';
+                    goalContainer.appendChild(completionMarker);
+                }
+            });
+            
+            // Scroll to the bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Keep the original function for backward compatibility
+        function handleGoalExecutionResponse(response) {
+            // Display goal header
+            const goalHeader = document.createElement('div');
+            goalHeader.className = 'goal-header';
+            
+            if (response.isComplete) {
+                goalHeader.innerHTML = `<h3>✅ Analysis Complete</h3>`;
+            } else {
+                goalHeader.innerHTML = `<h3>Goal ${response.goalIndex + 1}/${response.totalGoals}: ${response.currentGoal.split(':')[0]}</h3>`;
+            }
+            
+            chatMessages.appendChild(goalHeader);
+            
+            // Display response content
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'message bot-message goal-result';
+            responseDiv.innerHTML = formatResponseText(response.response);
+            chatMessages.appendChild(responseDiv);
+            
+            // Removed the Continue button since we now process all goals at once
+            
+            // Scroll to the bottom of the chat
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
 
         function addQueryDetails(queryDetails, tweetCount) {
             const queryDiv = document.createElement('div');
@@ -4007,6 +4388,9 @@
             if (window.electronAPI.removeAutoScrapingEventListener) {
                 window.electronAPI.removeAutoScrapingEventListener();
             }
+            if (window.electronAPI.removeGoalExecutionProgressListener) {
+                window.electronAPI.removeGoalExecutionProgressListener();
+            }
         });
 
         // Add near the beginning of your script, perhaps right after variable declarations
@@ -4047,6 +4431,197 @@
             
             // ... rest of your existing initialization code ...
         });
+
+        // Function to set up goal progress listener
+        function setupGoalProgressListener(conversationId) {
+            // Remove any existing listener to prevent duplicates
+            window.electronAPI.removeGoalExecutionProgressListener();
+            
+            // Set active progress listener flag
+            activeProgressListener = true;
+            
+            console.log(`Setting up goal progress listener for conversationId: ${conversationId}`);
+            
+            // Set up goal execution progress listener
+            window.electronAPI.onGoalExecutionProgress((progress) => {
+                console.log('Goal execution progress received:', progress);
+                console.log('Current conversationId:', conversationId);
+                console.log('Progress conversationId:', progress.conversationId);
+                
+                // Only process events for the current conversation
+                if (progress.conversationId !== conversationId) {
+                    console.log('Ignoring progress event for different conversation ID');
+                    return;
+                }
+                
+                const container = document.getElementById('goalProgressContainer');
+                if (!container) {
+                    console.error('Goal progress container not found, creating one');
+                    // Create container if it doesn't exist
+                    const newContainer = document.createElement('div');
+                    newContainer.className = 'goal-progress-container';
+                    newContainer.id = 'goalProgressContainer';
+                    chatMessages.appendChild(newContainer);
+                    
+                    // Use the newly created container
+                    processGoalProgress(newContainer, progress);
+                } else {
+                    console.log('Found existing goal container, updating it');
+                    processGoalProgress(container, progress);
+                }
+                
+                // Scroll to the bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+            
+            return true;
+        }
+        
+        // Extract goal processing logic to a separate function
+        function processGoalProgress(container, progress) {
+            // Find or create a section for this goal
+            let goalSection = container.querySelector(`.goal-section[data-goal-index="${progress.goalIndex}"]`);
+            
+            if (!goalSection) {
+                console.log(`Creating new goal section for goal ${progress.goalIndex + 1}/${progress.totalGoals}`);
+                // Create a new goal section if it doesn't exist
+                goalSection = document.createElement('div');
+                goalSection.className = 'goal-section';
+                goalSection.setAttribute('data-goal-index', progress.goalIndex);
+                
+                // Add goal header
+                const goalHeader = document.createElement('div');
+                goalHeader.className = 'goal-header';
+                goalHeader.innerHTML = `<h3>Goal ${progress.goalIndex + 1}/${progress.totalGoals}: ${progress.goal.split(':')[0]}</h3>`;
+                goalSection.appendChild(goalHeader);
+                
+                // Add goal content placeholder with loading indicator
+                const goalContent = document.createElement('div');
+                goalContent.className = 'message bot-message goal-result in-progress';
+                goalContent.innerHTML = `
+                    <div class="goal-loading">
+                        <div class="goal-loader"></div>
+                        <div>Executing goal ${progress.goalIndex + 1}/${progress.totalGoals}...</div>
+                    </div>
+                `;
+                goalSection.appendChild(goalContent);
+                
+                // Add to container
+                container.appendChild(goalSection);
+            } else {
+                console.log(`Found existing goal section for goal ${progress.goalIndex + 1}`);
+            }
+            
+            // Update the goal section based on status
+            if (progress.status === 'completed' && progress.result) {
+                console.log(`Updating content for completed goal ${progress.goalIndex + 1}`);
+                // Update content with result
+                const goalContent = goalSection.querySelector('.goal-result');
+                if (goalContent) {
+                    goalContent.innerHTML = formatResponseText(progress.result);
+                    goalContent.classList.remove('in-progress');
+                }
+            }
+        }
+
+        // Update existing window unload handler to remove goal progress listener
+        window.addEventListener('beforeunload', () => {
+            if (window.electronAPI.removeAutoScrapingStatusListener) {
+                window.electronAPI.removeAutoScrapingStatusListener();
+            }
+            if (window.electronAPI.removeAutoScrapingEventListener) {
+                window.electronAPI.removeAutoScrapingEventListener();
+            }
+            if (window.electronAPI.removeGoalExecutionProgressListener) {
+                window.electronAPI.removeGoalExecutionProgressListener();
+            }
+        });
+
+        // Add a function to manage chat state
+        function resetChatState() {
+            // Generate new conversation ID
+            currentConversationId = Date.now().toString();
+            console.log('Chat state reset with new conversation ID:', currentConversationId);
+            
+            // Clear waiting state
+            awaitingTimeframe = false;
+            
+            // Remove any active progress listeners
+            if (activeProgressListener) {
+                console.log('Removing goal progress listener during state reset');
+                window.electronAPI.removeGoalExecutionProgressListener();
+                activeProgressListener = false;
+            }
+            
+            // Clean up any existing goal progress containers
+            const existingContainers = document.querySelectorAll('.goal-progress-container');
+            existingContainers.forEach(container => {
+                console.log('Marking goal container as completed during reset');
+                if (!container.classList.contains('completed')) {
+                    container.classList.add('completed');
+                }
+            });
+        }
+
+        // Add a debug helper function
+        function debugEvent(type, data) {
+            console.log(`[EVENT] ${type}:`, data);
+            // You can toggle this to false in production
+            const showDebugInfo = true;
+            
+            if (showDebugInfo) {
+                // Add debug info to the console only
+                const debugInfo = {
+                    timestamp: new Date().toISOString(),
+                    type: type,
+                    data: data
+                };
+                console.log('%c EVENT DEBUG ', 'background: #ffcc00; color: black', debugInfo);
+            }
+        }
+
+        // Update the setupGoalProgressListener function to use our debug helper
+        function setupGoalProgressListener(conversationId) {
+            // Remove any existing listener to prevent duplicates
+            window.electronAPI.removeGoalExecutionProgressListener();
+            
+            // Set active progress listener flag
+            activeProgressListener = true;
+            
+            debugEvent('setupListener', { conversationId });
+            
+            // Set up goal execution progress listener
+            window.electronAPI.onGoalExecutionProgress((progress) => {
+                debugEvent('progressEvent', progress);
+                
+                // Only process events for the current conversation
+                if (progress.conversationId !== conversationId) {
+                    debugEvent('ignoredEvent', { expected: conversationId, received: progress.conversationId });
+                    return;
+                }
+                
+                const container = document.getElementById('goalProgressContainer');
+                if (!container) {
+                    console.error('Goal progress container not found, creating one');
+                    // Create container if it doesn't exist
+                    const newContainer = document.createElement('div');
+                    newContainer.className = 'goal-progress-container';
+                    newContainer.id = 'goalProgressContainer';
+                    chatMessages.appendChild(newContainer);
+                    
+                    // Use the newly created container
+                    processGoalProgress(newContainer, progress);
+                } else {
+                    console.log('Found existing goal container, updating it');
+                    processGoalProgress(container, progress);
+                }
+                
+                // Scroll to the bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+            
+            return true;
+        }
     </script>
 </body>
 </html> 
