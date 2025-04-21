@@ -68,6 +68,8 @@ class ChatManager {
             throw new Error('LLM endpoint not configured');
         }
 
+        console.log(`queryLLM called with ${messages.length} messages, using model type: ${this.config.type}`);
+
         try {
             if (this.config.type === 'gemini') {
                 // Google Gemini API call
@@ -100,6 +102,7 @@ class ChatManager {
                 const endpoint = `${this.config.endpoint}/models/${this.config.model}:generateContent?key=${this.config.apiKey}`;
 
                 console.log('Sending Gemini query to:', endpoint);
+                console.log('Gemini request body length:', JSON.stringify(body).length);
 
                 return new Promise((resolve, reject) => {
                     const url = new URL(endpoint);
@@ -110,32 +113,49 @@ class ChatManager {
                         headers: headers
                     };
 
+                    console.log('Gemini request options:', { 
+                        hostname: url.hostname,
+                        path: url.pathname.split('?')[0], // don't log API key
+                        method: 'POST'
+                    });
+
                     const req = https.request(options, (res) => {
                         let data = '';
 
                         res.on('data', (chunk) => {
                             data += chunk;
+                            console.log(`Received chunk of data: ${chunk.length} bytes`);
                         });
 
                         res.on('end', () => {
+                            console.log(`Gemini API response status: ${res.statusCode}`);
+                            console.log(`Total response data length: ${data.length} bytes`);
+                            
                             if (res.statusCode >= 200 && res.statusCode < 300) {
                                 try {
                                     const responseData = JSON.parse(data);
                                     if (responseData.candidates && responseData.candidates[0]?.content?.parts[0]?.text) {
-                                        resolve(responseData.candidates[0].content.parts[0].text);
+                                        const responseText = responseData.candidates[0].content.parts[0].text;
+                                        console.log(`Gemini response received, length: ${responseText.length}`);
+                                        resolve(responseText);
                                     } else {
+                                        console.error('Invalid Gemini API response format:', responseData);
                                         reject(new Error('Invalid Gemini API response format'));
                                     }
                                 } catch (error) {
+                                    console.error('Failed to parse Gemini response:', error);
+                                    console.error('Raw response:', data);
                                     reject(new Error(`Failed to parse Gemini response: ${error.message}`));
                                 }
                             } else {
+                                console.error(`Gemini API error (${res.statusCode}):`, data);
                                 reject(new Error(`Gemini API error (${res.statusCode}): ${data}`));
                             }
                         });
                     });
 
                     req.on('error', (error) => {
+                        console.error('Gemini request failed:', error);
                         reject(new Error(`Gemini request failed: ${error.message}`));
                     });
 
@@ -167,6 +187,7 @@ class ChatManager {
                     : `${this.config.endpoint.replace(/\/$/, '')}/v1/chat/completions`;
 
                 console.log('Sending OpenAI query to:', endpoint);
+                console.log('OpenAI request body length:', JSON.stringify(body).length);
 
                 return new Promise((resolve, reject) => {
                     const url = new URL(endpoint);
@@ -177,28 +198,53 @@ class ChatManager {
                         headers: headers
                     };
 
+                    console.log('OpenAI request options:', { 
+                        hostname: url.hostname,
+                        path: url.pathname,
+                        method: 'POST'
+                    });
+
                     const req = https.request(options, (res) => {
                         let data = '';
-
+                        
                         res.on('data', (chunk) => {
                             data += chunk;
+                            console.log(`Received chunk of data: ${chunk.length} bytes`);
                         });
 
                         res.on('end', () => {
+                            console.log(`OpenAI API response status: ${res.statusCode}`);
+                            console.log(`Total response data length: ${data.length} bytes`);
+                            
                             if (res.statusCode >= 200 && res.statusCode < 300) {
                                 try {
                                     const responseData = JSON.parse(data);
-                                    resolve(responseData.choices[0].message.content);
+                                    
+                                    if (responseData.choices && responseData.choices[0]) {
+                                        const responseText = responseData.choices[0].message.content;
+                                        console.log(`OpenAI response received, length: ${responseText.length}`);
+                                        // Debug first and last 100 chars of the response
+                                        console.log(`Response start: "${responseText.substring(0, 100)}..."`);
+                                        console.log(`Response end: "...${responseText.substring(responseText.length - 100)}"`);
+                                        resolve(responseText);
+                                    } else {
+                                        console.error('Invalid OpenAI API response format:', responseData);
+                                        reject(new Error('Invalid OpenAI API response format'));
+                                    }
                                 } catch (error) {
+                                    console.error('Failed to parse OpenAI response:', error);
+                                    console.error('Raw response (first 500 chars):', data.substring(0, 500));
                                     reject(new Error(`Failed to parse OpenAI response: ${error.message}`));
                                 }
                             } else {
+                                console.error(`OpenAI API error (${res.statusCode}):`, data);
                                 reject(new Error(`OpenAI API error (${res.statusCode}): ${data}`));
                             }
                         });
                     });
 
                     req.on('error', (error) => {
+                        console.error('OpenAI request failed:', error);
                         reject(new Error(`OpenAI request failed: ${error.message}`));
                     });
 
@@ -207,7 +253,7 @@ class ChatManager {
                 });
             }
         } catch (error) {
-            console.error('LLM query error:', error);
+            console.error('Error in queryLLM:', error);
             throw error;
         }
     }
@@ -390,8 +436,8 @@ class ChatManager {
                         if (totalTweets < limit) {
                             allTweets.push({
                                 _id: tweet.tweet_id,
-                                user_name: tweet.user.name,
-                                user_handle: tweet.user.handle,
+                                user_name: tweet.user?.name || 'Unknown User',
+                                user_handle: tweet.user?.handle || 'unknown',
                                 content: tweet.content,
                                 timestamp: new Date(tweet.timestamp),
                                 url: tweet.url,
@@ -468,6 +514,8 @@ class ChatManager {
     }
 
     async analyzeTweets(tweets, userPrompt) {
+        console.log(`analyzeTweets called with ${tweets.length} tweets and prompt: ${userPrompt}`);
+        
         const defaultSystemPrompt = `You are an intelligent and context-aware assistant that specializes in analyzing Twitter data. The user will provide a collection of tweets — which may include posts, replies, retweets, or quoted tweets — often spanning different users, tones, and topics.
 
                             Your job is to:
@@ -486,18 +534,38 @@ class ChatManager {
 
                             Be analytical, but conversational. Avoid generic fluff. Use examples from the tweet data to support your insights when possible.`;
 
-        const messages = [
-            {
-                role: 'system',
-                content: this.config?.systemPrompt || defaultSystemPrompt
-            },
-            {
-                role: 'user',
-                content: `Analyze these tweets: ${JSON.stringify(tweets)}\n\nUser request: ${userPrompt}`
-            }
-        ];
+        // Use a sample of tweets if there are too many to avoid token limits
+        let tweetsToAnalyze = tweets;
+        if (tweets.length > 50) {
+            console.log(`Sampling ${50} tweets from the total of ${tweets.length}`);
+            tweetsToAnalyze = tweets.slice(0, 50);
+        }
 
-        return await this.queryLLM(messages);
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: this.config?.systemPrompt || defaultSystemPrompt
+                },
+                {
+                    role: 'user',
+                    content: `Analyze these tweets: ${JSON.stringify(tweetsToAnalyze)}\n\nUser request: ${userPrompt}`
+                }
+            ];
+
+            console.log('Sending query to LLM with message length:', 
+                        messages[0].content.length + messages[1].content.length);
+            
+            const result = await this.queryLLM(messages);
+            console.log('Received response from LLM, length:', result ? result.length : 0);
+            console.log('Response preview:', result ? result.slice(0, 200) + '...' : 'No response');
+            console.log('Response end:', result ? '...' + result.slice(-200) : 'No response');
+            
+            return result;
+        } catch (error) {
+            console.error('Error in analyzeTweets:', error);
+            throw error;
+        }
     }
 
     initializeHandlers() {
@@ -507,6 +575,7 @@ class ChatManager {
             { channel: 'get-llm-config', handler: async () => this.config },
             { channel: 'chat-query', handler: async (event, { query, conversationId, timeframe = null }) => {
                 try {
+                    console.log('Received chat query:', { query, conversationId, timeframe });
                     let conversation = this.conversations.get(conversationId);
                     if (!conversation) {
                         conversation = { state: 'initial', context: {} };
@@ -519,6 +588,7 @@ class ChatManager {
                         if (timeCheck?.needsMoreInfo) {
                             conversation.state = 'awaiting_timeframe';
                             conversation.context.originalQuery = query;
+                            console.log('Requesting timeframe from user');
                             return {
                                 success: true,
                                 needsMoreInfo: true,
@@ -535,17 +605,39 @@ class ChatManager {
                     }
 
                     // Execute the natural query to get relevant tweets
+                    console.log('Processing natural query...');
                     const queryResults = await this.processNaturalQuery(query, timeframe);
+                    console.log(`Retrieved ${queryResults.results.length} tweets for analysis`);
 
                     // Analyze the results based on the user's prompt
+                    console.log('Sending tweets to LLM for analysis...');
                     const analysis = await this.analyzeTweets(queryResults.results, query);
+                    console.log('Received analysis from LLM, length:', analysis?.length || 0);
+                    
+                    // Log analysis chunks to verify full response
+                    if (analysis) {
+                        const chunkSize = 500;
+                        console.log(`Logging analysis in ${Math.ceil(analysis.length / chunkSize)} chunks:`);
+                        for (let i = 0; i < analysis.length; i += chunkSize) {
+                            const chunk = analysis.substring(i, i + chunkSize);
+                            console.log(`Chunk ${Math.floor(i / chunkSize) + 1}:`, chunk);
+                        }
+                    }
 
-                    return {
+                    const response = {
                         success: true,
                         response: analysis,
                         queryDetails: queryResults.query,
                         tweetCount: queryResults.count
                     };
+                    
+                    console.log('Sending response to renderer:', {
+                        success: response.success,
+                        responseLength: response.response?.length || 0,
+                        tweetCount: response.tweetCount
+                    });
+                    
+                    return response;
 
                 } catch (error) {
                     console.error('Chat query error:', error);
