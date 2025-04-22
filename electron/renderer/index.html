@@ -1,7 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Twitter Scraper</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://generativelanguage.googleapis.com;">
+    <title>Scrapenet - Web Data Collection and Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+          integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w==" 
+          crossorigin="anonymous">
+    <!-- Add KaTeX CSS for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" 
+          integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" 
+          crossorigin="anonymous">
+    <!-- Add KaTeX JS -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" 
+            integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx" 
+            crossorigin="anonymous"></script>
+    <!-- Add Auto-render extension for KaTeX -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" 
+            integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" 
+            crossorigin="anonymous"></script>
+    <!-- Add Mermaid for diagram rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.4.0/dist/mermaid.min.js"
+            integrity="sha384-0qGiKYQ6Ux3E1QAxCN+DUsYbXkVKUWln4Gkx0h1JThkJZFVceDU8UfMGYXYGpBWn"
+            crossorigin="anonymous"></script>
     <style>
         /* Base Styles */
         body {
@@ -1067,6 +1088,28 @@
             padding: 15px;
             box-shadow: 4px 4px 0 black;
             border-radius: 15px 15px 15px 0;
+            max-width: 85%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .bot-message pre {
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-width: 100%;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .bot-message code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
         }
 
         .chat-input-container {
@@ -1670,6 +1713,615 @@
         .accept-license:hover {
             background-color: #0f84c7;
         }
+
+        /* Advanced Content Formatting Styles */
+        .insight-content {
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .insight-content p {
+            margin-bottom: 1em;
+        }
+
+        /* Code Blocks */
+        .code-block {
+            margin: 1.5em 0;
+            background: #f8f8f8;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #e0e0e0;
+            padding: 8px 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .code-language {
+            background: #2196F3;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .copy-code-btn {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s ease;
+        }
+
+        .copy-code-btn:hover {
+            background: #f0f0f0;
+            border-color: #999;
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .code-block code {
+            white-space: pre;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 1.5em 0;
+        }
+
+        .enhanced-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #e0e0e0;
+            font-size: 0.95em;
+        }
+
+        .enhanced-table thead {
+            background: #f0f0f0;
+        }
+
+        .enhanced-table th {
+            background: #2196F3;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .enhanced-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 15px;
+        }
+
+        .enhanced-table tbody tr:nth-child(even) {
+            background: #f8f8f8;
+        }
+
+        .enhanced-table tbody tr:hover {
+            background: #e3f2fd;
+        }
+
+        /* Lists */
+        .insight-content ul, .insight-content ol {
+            margin: 1em 0;
+            padding-left: 2em;
+        }
+
+        .insight-content ul {
+            list-style-type: disc;
+        }
+
+        .insight-content ol {
+            list-style-type: decimal;
+        }
+
+        .insight-content li {
+            margin-bottom: 0.5em;
+        }
+
+        /* Blockquotes */
+        .insight-content blockquote {
+            margin: 1.5em 0;
+            padding: 10px 20px;
+            border-left: 4px solid #2196F3;
+            background: #f0f0f0;
+            font-style: italic;
+        }
+
+        /* Inline code */
+        .insight-content code {
+            background: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Headings */
+        .insight-content h1, .insight-content h2, 
+        .insight-content h3, .insight-content h4,
+        .insight-content h5, .insight-content h6 {
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+
+        .insight-content h1 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.3em;
+        }
+
+        .insight-content h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 0.3em;
+        }
+
+        .insight-content h3 {
+            font-size: 1.3em;
+        }
+
+        .insight-content h4 {
+            font-size: 1.1em;
+        }
+
+        .insight-content h5 {
+            font-size: 1em;
+        }
+
+        .insight-content h6 {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        /* Links */
+        .insight-content a {
+            color: #2196F3;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+
+        .insight-content a:hover {
+            border-bottom-color: #2196F3;
+        }
+
+        /* Twitter handles highlight */
+        .highlight-account {
+            color: #1DA1F2;
+            font-weight: bold;
+        }
+
+        /* Key terms highlight */
+        .highlight {
+            background: #ffeb3b50;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* JSON Viewer Styles */
+        .json-viewer {
+            margin: 1.5em 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f8f8f8;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .json-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #e0e0e0;
+            padding: 8px 15px;
+        }
+
+        .json-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .json-action-btn {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .json-action-btn:hover {
+            background: #f0f0f0;
+            border-color: #999;
+        }
+
+        .json-content {
+            padding: 15px;
+            overflow-x: auto;
+        }
+
+        .json-details {
+            margin: 0;
+            padding: 0;
+        }
+
+        .json-summary {
+            cursor: pointer;
+            padding: 2px;
+            list-style: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .json-summary:hover {
+            background: #e3f2fd;
+        }
+
+        .json-summary:focus {
+            outline: none;
+        }
+
+        .json-summary::marker,
+        .json-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .json-summary::before {
+            content: '▶';
+            display: inline-block;
+            font-size: 0.8em;
+            width: 16px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .json-details[open] > .json-summary::before {
+            transform: rotate(90deg);
+        }
+
+        .json-preview {
+            margin-left: 5px;
+            color: #777;
+        }
+
+        .json-array, .json-object {
+            margin-left: 16px;
+        }
+
+        .json-array-items, .json-object-properties {
+            margin-left: 16px;
+        }
+
+        .json-array-item, .json-property {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+
+        .json-key {
+            color: #7d2727; /* dark red */
+        }
+
+        .json-string {
+            color: #2e7d32; /* dark green */
+        }
+
+        .json-number {
+            color: #0277bd; /* dark blue */
+        }
+
+        .json-boolean {
+            color: #7b1fa2; /* purple */
+        }
+
+        .json-null {
+            color: #777; /* gray */
+            font-style: italic;
+        }
+
+        /* Math Expressions */
+        .math-inline {
+            display: inline-block;
+            margin: 0 3px;
+            vertical-align: middle;
+        }
+
+        .math-block {
+            display: block;
+            margin: 1em 0;
+            text-align: center;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .katex-display {
+            margin: 0; /* Override KaTeX default margins */
+        }
+
+        .katex {
+            font-size: 1.1em;
+        }
+        
+        /* Mermaid Diagrams */
+        .mermaid-container {
+            margin: 1.5em 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .diagram-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #e0e0e0;
+            padding: 8px 15px;
+        }
+        
+        .mermaid {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100px;
+            position: relative;
+            overflow-x: auto;
+        }
+        
+        .diagram-error {
+            color: #d32f2f;
+            padding: 15px;
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+        }
+
+        /* Add these CSS styles in the <style> section */
+        .code-block {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+        
+        code {
+            background-color: rgba(175, 184, 193, 0.2);
+            border-radius: 3px;
+            padding: 0.2em 0.4em;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 85%;
+        }
+        
+        .bot-message {
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        /* Agentic Workflow Styles */
+        .goals-message {
+            border: 3px solid #1E88E5;
+            border-radius: 15px;
+            background-color: #f0f8ff;
+        }
+
+        .goal-approval-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #1E88E5;
+        }
+
+        .approve-goals-btn, .continue-goal-btn {
+            background: #4CAF50;
+            color: white;
+            border: 2px solid black;
+            padding: 10px 16px;
+            font-weight: bold;
+            box-shadow: 3px 3px 0 black;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+
+        .decline-goals-btn {
+            background: #F44336;
+            color: white;
+            border: 2px solid black;
+            padding: 10px 16px;
+            font-weight: bold;
+            box-shadow: 3px 3px 0 black;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+
+        .approve-goals-btn:hover:not(:disabled), 
+        .decline-goals-btn:hover:not(:disabled),
+        .continue-goal-btn:hover:not(:disabled) {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0 black;
+        }
+
+        .approve-goals-btn:disabled, 
+        .decline-goals-btn:disabled,
+        .continue-goal-btn:disabled {
+            background: #e0e0e0;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .goal-header {
+            background: #f0f8ff;
+            border: 2px solid #1E88E5;
+            border-left: 6px solid #1E88E5;
+            padding: 10px 15px;
+            margin: 15px 0 5px 0;
+            border-radius: 6px;
+        }
+
+        .goal-header h3 {
+            margin: 0;
+            color: #1E88E5;
+            font-size: 1.2em;
+        }
+
+        .goal-result {
+            margin-top: 0;
+            border-top-left-radius: 0;
+            border-color: #1E88E5;
+        }
+
+        .continue-goal-btn {
+            display: block;
+            margin: 15px auto 5px auto;
+        }
+
+        /* Styles for sequential goal display */
+        .all-goals-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 15px 0;
+        }
+
+        .goal-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .completion-marker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background: #e8f5e9;
+            border: 2px solid #4CAF50;
+            border-radius: 30px;
+        }
+
+        .checkmark {
+            background-color: #4CAF50;
+            color: white;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+
+        .completion-text {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        /* Goal Progress Styles */
+        .goal-progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 15px 0;
+        }
+
+        .goal-progress-container.completed {
+            opacity: 0.8;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .goal-result.in-progress {
+            background-color: #f5f5f5;
+            border-color: #90CAF9;
+            min-height: 60px;
+        }
+
+        .goal-loading {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            font-style: italic;
+            color: #1E88E5;
+        }
+
+        .goal-loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e0e0e0;
+            border-top: 3px solid #1E88E5;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Transition effects for goal results */
+        .goal-result {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .goal-section {
+            animation: fade-in 0.5s ease-in-out;
+        }
+
+        @keyframes fade-in {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .query-info {
+            padding: 15px;
+            background: #f8f8fa;
+            border-radius: 10px;
+        }
+
+        .query-summary {
+            background: #e8f5e9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 8px 0 12px 0;
+            font-weight: 500;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+
+        .tweet-count {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #1565c0;
+        }
     </style>
 </head>
 <body>
@@ -2044,6 +2696,7 @@
         let countdownInterval = null;
         let currentConversationId = Date.now().toString();
         let awaitingTimeframe = false;
+        let activeProgressListener = false;
 
         // Scraping status management
         let isScrapingInProgress = false;
@@ -2823,14 +3476,42 @@
 
         // Update the parseAndFormatResponse function
         function parseAndFormatResponse(response) {
+            console.log('parseAndFormatResponse called with:', response);
+            
+            // Special case to handle cryptocurrency analysis with broken word spacing and tags
+            if (response.includes('Bitcoin') && 
+                (response.includes('announcement') || response.includes('Musk') || 
+                 response.includes('Stablecoin') || response.includes('Tokenization'))) {
+                console.log('Detected cryptocurrency analysis text, applying special formatting');
+                // Fix common formatting issues with the Bitcoin analysis text
+                let processed = response;
+                
+                // Add spaces between words that are run together
+                processed = processed.replace(/([a-z])([A-Z])/g, '$1 $2');
+                
+                // Fix spacing around HTML tags
+                processed = processed.replace(/</g, ' <').replace(/>/g, '> ');
+                
+                // Remove excessive spaces
+                processed = processed.replace(/\s+/g, ' ').trim();
+                
+                return `<div class="insight-content">${processed}</div>`;
+            }
+            
             // First, check if it's a Twitter accounts analysis
             if (response.includes('Based on the provided tweets, the following Twitter accounts')) {
+                console.log('Detected Twitter accounts analysis, applying special formatting');
                 return formatTwitterAccountsAnalysis(response);
             }
 
-            // Check if the response has numbered points
+            // Enhanced content detection and formatting
+            console.log('Using standard content enhancement');
+            const formattedContent = enhanceContent(response);
+            
+            // Check if the response has numbered points for insights display
             const numberedPoints = response.match(/\d+\.\s+\*\*[^*]+\*\*[^]*?(?=\d+\.|$)/g);
             if (numberedPoints) {
+                console.log('Detected numbered points format, creating insights container');
                 let formattedHtml = '<div class="insights-container">';
                 
                 numberedPoints.forEach((point, index) => {
@@ -2843,7 +3524,7 @@
                         formattedHtml += `
                             <div class="insight-point" data-number="${index + 1}">
                                 <div class="insight-title">${title}</div>
-                                <div class="insight-content">${formatContent(content)}</div>
+                                <div class="insight-content">${enhanceContent(content)}</div>
                             </div>
                         `;
                     }
@@ -2853,8 +3534,94 @@
                 return formattedHtml;
             }
             
-            // If no special format, wrap in a simple message container
-            return `<div class="insight-content">${formatContent(response)}</div>`;
+            // If no special format, wrap in a simple message container with enhanced content
+            console.log('Using standard message container');
+            return `<div class="insight-content">${formattedContent}</div>`;
+        }
+        
+        // Process HTML content directly without markdown conversion
+        function processHTMLContent(content) {
+            // Clean up spaces in tag content 
+            let processedContent = content
+                // First, replace HTML entities with actual HTML tags
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                
+                // Fix common spacing issues
+                .replace(/(\w+)<br>(\w+)/g, '$1<br> $2')
+                .replace(/(\w+)<em>(\w+)/g, '$1 <em>$2')
+                .replace(/(\w+)<\/em>(\w+)/g, '$1</em> $2')
+                .replace(/(\w+)<strong>(\w+)/g, '$1 <strong>$2')
+                .replace(/(\w+)<\/strong>(\w+)/g, '$1</strong> $2')
+                
+                // Fix very long joined words (more than 15 characters)
+                .replace(/(\w{15,})/g, function(match) {
+                    // Insert a space before capital letters
+                    return match.replace(/([a-z])([A-Z])/g, '$1 $2');
+                })
+                
+                // Add spaces between capital words (like "ElonMusk")
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                
+                // Fix HTML tags
+                .replace(/<br\s*>/gi, '<br>')
+                .replace(/<(\/?)em>/gi, '<$1em>')
+                .replace(/<(\/?)strong>/gi, '<$1strong>')
+                .replace(/<(\/?)p>/gi, '<$1p>')
+                .replace(/<(\/?)ul>/gi, '<$1ul>')
+                .replace(/<(\/?)ol>/gi, '<$1ol>')
+                .replace(/<(\/?)li>/gi, '<$1li>')
+                .replace(/<(\/?)blockquote>/gi, '<$1blockquote>')
+                .replace(/<(\/?)h([1-6])>/gi, '<$1h$2>')
+                .replace(/<(\/?)code>/gi, '<$1code>')
+                .replace(/<(\/?)pre>/gi, '<$1pre>');
+                
+            return `<div class="insight-content">${processedContent}</div>`;
+        }
+        
+        // New function for enhanced content detection and formatting
+        function enhanceContent(content) {
+            if (!content) return '';
+            
+            // Process code blocks first (prevent internal markdown from being processed)
+            content = processCodeBlocks(content);
+            
+            // Process tables
+            content = processTables(content);
+            
+            // Process lists
+            content = processLists(content);
+            
+            // Process blockquotes
+            content = processBlockquotes(content);
+            
+            // Process math expressions
+            content = processMathExpressions(content);
+            
+            // Process inline code
+            content = processInlineCode(content);
+            
+            // Process bold and italic text
+            content = processBoldItalic(content);
+            
+            // Process headings
+            content = processHeadings(content);
+            
+            // Process links
+            content = processLinks(content);
+            
+            // Highlight Twitter handles and key terms (after other formatting)
+            content = formatContent(content);
+            
+            // Convert line breaks to HTML
+            content = content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+            
+            // Wrap in paragraph tags if not already wrapped
+            if (!content.startsWith('<p>')) {
+                content = `<p>${content}</p>`;
+            }
+            
+            return content;
         }
 
         function formatTwitterAccountsAnalysis(response) {
@@ -2891,7 +3658,7 @@
                 if (context && !context.startsWith('Based') && !context.startsWith('Additionally')) {
                     formattedHtml += `
                         <div class="insight-point">
-                            <div class="insight-content">${formatContent(context)}</div>
+                            <div class="insight-content">${enhanceContent(context)}</div>
                         </div>
                     `;
                 }
@@ -2902,6 +3669,11 @@
         }
 
         function formatContent(content) {
+            // Don't process content that already has HTML tags
+            if (content.includes('<') && content.includes('>')) {
+                return content;
+            }
+
             // Highlight Twitter handles
             content = content.replace(/@[\w]+/g, match => 
                 `<span class="highlight-account">${match}</span>`
@@ -2915,20 +3687,30 @@
 
         // Update the addMessage function
         function addMessage(content, isUser = false) {
+            console.log(`addMessage called, isUser=${isUser}, content:`, content);
+            
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
             
             if (isUser) {
                 messageDiv.textContent = content;
             } else {
-                messageDiv.innerHTML = parseAndFormatResponse(content);
+                try {
+                    const formattedHtml = parseAndFormatResponse(content);
+                    console.log('Formatted HTML:', formattedHtml);
+                    messageDiv.innerHTML = formattedHtml;
+                } catch (error) {
+                    console.error('Error in parsing/formatting response:', error);
+                    messageDiv.textContent = content; // Fallback to plain text
+                }
             }
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            console.log('Message added to chat');
         }
 
-        // Add new function to create progress steps
+        // Function to create progress steps
         function createProgressSteps() {
             const stepsDiv = document.createElement('div');
             stepsDiv.className = 'progress-steps';
@@ -2937,7 +3719,7 @@
                     <div class="step-icon">1</div>
                     <div class="step-content">
                         <div class="step-title">Retrieving Tweets</div>
-                        <div class="step-details">Fetching relevant tweets from the database</div>
+                        <div class="step-details">Finding relevant tweets</div>
                         <div class="step-timing"></div>
                     </div>
                     <div class="step-loader">
@@ -2993,109 +3775,373 @@
             loader.innerHTML = '<div class="completion-check">✓</div>';
         }
 
+        // Add this helper function before the sendMessage event listener
+        function formatResponseText(text) {
+            console.log('Formatting response text, length:', text ? text.length : 0);
+            console.log('Response text (first 200 chars):', text ? text.substring(0, 200) : 'empty');
+            
+            if (!text || typeof text !== 'string') return '';
+            
+            // Convert newlines to <br> tags
+            text = text.replace(/\n/g, '<br>');
+            
+            // Format code blocks
+            text = text.replace(/```(.*?)\n([\s\S]*?)```/g, (match, language, code) => {
+                return `<pre class="code-block"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+            });
+            
+            // Format inline code
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Format bold text
+            text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            
+            // Format italic text
+            text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            
+            console.log('Formatted response length:', text.length);
+            return text;
+        }
+
         // Update the sendMessage event listener
         sendMessage.addEventListener('click', async () => {
             const message = chatInput.value.trim();
             if (!message) return;
+            
+            // Reset state for new query, unless we're awaiting a timeframe
+            if (!awaitingTimeframe) {
+                resetChatState();
+            }
+            
+            // Set up variables for error handling
+            let progressSteps = null;
 
             try {
-                addMessage(message, true);
+                // Add user message to chat
+                const userMessageDiv = document.createElement('div');
+                userMessageDiv.className = 'message user-message';
+                userMessageDiv.textContent = message;
+                chatMessages.appendChild(userMessageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Clear input and disable UI
                 chatInput.value = '';
                 chatInput.disabled = true;
                 sendMessage.disabled = true;
 
                 // Add progress steps
-                const progressSteps = createProgressSteps();
+                progressSteps = createProgressSteps();
                 chatMessages.appendChild(progressSteps);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-
-                // Start timing
-                const startTime = Date.now();
 
                 // Step 1: Retrieve tweets
                 const retrieveStep = progressSteps.querySelector('[data-step="retrieve"]');
                 retrieveStep.classList.add('active');
-                const retrieveStartTime = Date.now();
                 
+                console.log('Sending chat query with conversation ID:', currentConversationId);
                 const response = await window.electronAPI.chatQuery({
                     query: message,
                     conversationId: currentConversationId,
                     timeframe: awaitingTimeframe ? message : null
                 });
-
-                // Update retrieve step timing and mark as completed
-                const retrieveTime = Date.now() - retrieveStartTime;
-                retrieveStep.querySelector('.step-timing').textContent = `Completed in ${retrieveTime}ms`;
+                
                 completeStep(retrieveStep);
 
                 // Step 2: Analyze content
                 const analyzeStep = progressSteps.querySelector('[data-step="analyze"]');
                 analyzeStep.classList.add('active');
-                const analyzeStartTime = Date.now();
 
                 if (response.needsMoreInfo) {
                     awaitingTimeframe = true;
-                    addMessage(response.prompt, false);
+                    
+                    // Add prompt for more information
+                    const promptDiv = document.createElement('div');
+                    promptDiv.className = 'message bot-message';
+                    promptDiv.innerHTML = formatResponseText(response.prompt);
+                    chatMessages.appendChild(promptDiv);
+                } else if (response.awaitingGoalApproval) {
+                    // Display the goals for user approval
+                    const goalsDiv = document.createElement('div');
+                    goalsDiv.className = 'message bot-message goals-message';
+                    goalsDiv.innerHTML = formatResponseText(response.goalsResponse);
+                    
+                    // Add approval buttons
+                    const approvalButtons = document.createElement('div');
+                    approvalButtons.className = 'goal-approval-buttons';
+                    approvalButtons.innerHTML = `
+                        <button class="approve-goals-btn">Yes, proceed with this plan</button>
+                        <button class="decline-goals-btn">No, I'd like a different approach</button>
+                    `;
+                    goalsDiv.appendChild(approvalButtons);
+                    chatMessages.appendChild(goalsDiv);
+                    
+                    // Add event listeners for approval buttons
+                    goalsDiv.querySelector('.approve-goals-btn').addEventListener('click', async (e) => {
+                        e.target.disabled = true;
+                        
+                        // Remove the buttons
+                        approvalButtons.remove();
+                        
+                        // Add a confirmation message
+                        const confirmationDiv = document.createElement('div');
+                        confirmationDiv.className = 'message user-message';
+                        confirmationDiv.textContent = 'I approve this plan. Please proceed.';
+                        chatMessages.appendChild(confirmationDiv);
+                        
+                        // Make sure we remove any existing containers first
+                        const existingContainer = document.getElementById('goalProgressContainer');
+                        if (existingContainer) {
+                            console.log('Removing existing goal progress container');
+                            existingContainer.remove();
+                        }
+                        
+                        // Add container for goal progress and results
+                        const goalProgressContainer = document.createElement('div');
+                        goalProgressContainer.className = 'goal-progress-container';
+                        goalProgressContainer.id = 'goalProgressContainer';
+                        chatMessages.appendChild(goalProgressContainer);
+                        
+                        // Clean up any existing listeners before setting up new ones
+                        if (activeProgressListener) {
+                            console.log('Removing existing progress listener');
+                            window.electronAPI.removeGoalExecutionProgressListener();
+                            activeProgressListener = false;
+                        }
+                        
+                        // Setup progress listener
+                        console.log('Setting up goal progress listener for conversation:', currentConversationId);
+                        const progressListenerActive = setupGoalProgressListener(currentConversationId);
+                        
+                        // Execute the approved goals
+                        try {
+                            console.log('Sending goal approval for conversation ID:', currentConversationId);
+                            const goalExecutionResponse = await window.electronAPI.chatQuery({
+                                query: message,
+                                conversationId: currentConversationId,
+                                approveGoals: true
+                            });
+                            
+                            // Remove progress listener
+                            window.electronAPI.removeGoalExecutionProgressListener();
+                            activeProgressListener = false;
+                            
+                            // Add completion marker if needed
+                            const container = document.getElementById('goalProgressContainer');
+                            if (container) {
+                                const completionMarker = document.createElement('div');
+                                completionMarker.className = 'completion-marker';
+                                completionMarker.innerHTML = '<div class="checkmark">✓</div><div class="completion-text">All analysis goals completed</div>';
+                                container.appendChild(completionMarker);
+                            }
+                            
+                            // Reset state for next query
+                            resetChatState();
+                            
+                        } catch (error) {
+                            console.error('Error executing goals:', error);
+                            
+                            // Remove progress listener
+                            window.electronAPI.removeGoalExecutionProgressListener();
+                            activeProgressListener = false;
+                            
+                            // Add error message
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'message bot-message error';
+                            errorDiv.innerHTML = formatResponseText('Error executing goals: ' + error.message);
+                            chatMessages.appendChild(errorDiv);
+                            
+                            // Reset state for next query
+                            resetChatState();
+                        }
+                    });
+                    
+                    // Handling for declining the goals
+                    goalsDiv.querySelector('.decline-goals-btn').addEventListener('click', () => {
+                        // Remove the buttons
+                        approvalButtons.remove();
+                        
+                        // Add a decline message
+                        const declineDiv = document.createElement('div');
+                        declineDiv.className = 'message user-message';
+                        declineDiv.textContent = 'I would like a different approach. Let me rephrase my question.';
+                        chatMessages.appendChild(declineDiv);
+                        
+                        // Reset the chat state for a new query
+                        resetChatState();
+                        
+                        // Re-enable the input
+                        chatInput.disabled = false;
+                        sendMessage.disabled = false;
+                    });
+                } else if (response.isGoalExecution) {
+                    // Handle goal execution response
+                    handleGoalExecutionResponse(response);
                 } else {
                     awaitingTimeframe = false;
+                    
+                    // Add query details if available
                     if (response.queryDetails) {
-                        addQueryDetails(response.queryDetails, response.tweetCount);
+                        displayQueryDetails(response.queryDetails, response.tweetCount);
                     }
-                    addMessage(response.response, false);
+                    
+                    // Add AI response
+                    if (response.response) {
+                        const botMessageDiv = document.createElement('div');
+                        botMessageDiv.className = 'message bot-message';
+                        console.log('Bot response length:', response.response.length);
+                        console.log('Bot response (first 500 chars):', response.response.substring(0, 500));
+                        botMessageDiv.innerHTML = formatResponseText(response.response);
+                        chatMessages.appendChild(botMessageDiv);
+                    } else {
+                        throw new Error('No response received from AI');
+                    }
                 }
-
-                // Update analyze step timing and mark as completed
-                const analyzeTime = Date.now() - analyzeStartTime;
-                analyzeStep.querySelector('.step-timing').textContent = `Completed in ${analyzeTime}ms`;
+                
                 completeStep(analyzeStep);
-
-                // Step 3: Format response
+                
+                // Step 3: Format response (simplified)
                 const formatStep = progressSteps.querySelector('[data-step="format"]');
                 formatStep.classList.add('active');
-                const formatStartTime = Date.now();
-
-                // Simulate a small delay for formatting
                 await new Promise(resolve => setTimeout(resolve, 500));
-
-                // Update format step timing and mark as completed
-                const formatTime = Date.now() - formatStartTime;
-                formatStep.querySelector('.step-timing').textContent = `Completed in ${formatTime}ms`;
                 completeStep(formatStep);
-
-                // Add total time
-                const totalTime = Date.now() - startTime;
-                const totalTimeDiv = document.createElement('div');
-                totalTimeDiv.className = 'step-timing';
-                totalTimeDiv.style.textAlign = 'right';
-                totalTimeDiv.style.marginTop = '10px';
-                totalTimeDiv.textContent = `Total processing time: ${totalTime}ms`;
-                progressSteps.appendChild(totalTimeDiv);
+                
+                // Scroll to the bottom of the chat
+                chatMessages.scrollTop = chatMessages.scrollHeight;
 
             } catch (error) {
-                // Mark all active steps as failed
-                progressSteps.querySelectorAll('.step.active').forEach(step => {
-                    step.classList.remove('active');
-                    step.classList.add('failed');
-                    const loader = step.querySelector('.step-loader');
-                    loader.innerHTML = '<div class="completion-check" style="background: #ff4444;">✕</div>';
-                });
+                console.error('Error in chat:', error);
+                
+                // Mark steps as failed if they exist
+                if (progressSteps) {
+                    progressSteps.querySelectorAll('.step.active').forEach(step => {
+                        step.classList.remove('active');
+                        step.classList.add('failed');
+                        const loader = step.querySelector('.step-loader');
+                        if (loader) {
+                            loader.innerHTML = '<div class="completion-check" style="background: #ff4444;">✕</div>';
+                        }
+                    });
+                }
 
-                addMessage(`Error: ${error.message}`, false);
-                // Start a new conversation on error
-                currentConversationId = Date.now().toString();
-                awaitingTimeframe = false;
+                // Add error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message bot-message error';
+                errorDiv.innerHTML = formatResponseText('Error: ' + error.message);
+                chatMessages.appendChild(errorDiv);
+                
+                // Reset chat state if not awaiting timeframe
+                if (!awaitingTimeframe) {
+                    resetChatState();
+                } else {
+                    awaitingTimeframe = false;
+                }
             } finally {
+                // Re-enable UI
                 chatInput.disabled = false;
                 sendMessage.disabled = false;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         });
 
-        function addQueryDetails(queryDetails, tweetCount) {
+        // Function to display all goal results sequentially
+        function displayAllGoalResults(goalResults) {
+            console.log('Displaying all goal results:', goalResults);
+            
+            if (!goalResults || !goalResults.length) {
+                console.error('No goal results to display');
+                return;
+            }
+            
+            // Add container for all goals
+            const goalContainer = document.createElement('div');
+            goalContainer.className = 'all-goals-container';
+            chatMessages.appendChild(goalContainer);
+            
+            // Process each goal result
+            goalResults.forEach((goalData, index) => {
+                // Create goal section
+                const goalSection = document.createElement('div');
+                goalSection.className = 'goal-section';
+                
+                // Add goal header
+                const goalHeader = document.createElement('div');
+                goalHeader.className = 'goal-header';
+                goalHeader.innerHTML = `<h3>Goal ${index + 1}/${goalResults.length}: ${goalData.goal.split(':')[0]}</h3>`;
+                goalSection.appendChild(goalHeader);
+                
+                // Add goal content
+                const goalContent = document.createElement('div');
+                goalContent.className = 'message bot-message goal-result';
+                goalContent.innerHTML = formatResponseText(goalData.result);
+                goalSection.appendChild(goalContent);
+                
+                // Add to container
+                goalContainer.appendChild(goalSection);
+                
+                // Add completion marker if this is the last goal
+                if (index === goalResults.length - 1) {
+                    const completionMarker = document.createElement('div');
+                    completionMarker.className = 'completion-marker';
+                    completionMarker.innerHTML = '<div class="checkmark">✓</div><div class="completion-text">All analysis goals completed</div>';
+                    goalContainer.appendChild(completionMarker);
+                }
+            });
+            
+            // Scroll to the bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Keep the original function for backward compatibility
+        function handleGoalExecutionResponse(response) {
+            // Display goal header
+            const goalHeader = document.createElement('div');
+            goalHeader.className = 'goal-header';
+            
+            if (response.isComplete) {
+                goalHeader.innerHTML = `<h3>✅ Analysis Complete</h3>`;
+            } else {
+                goalHeader.innerHTML = `<h3>Goal ${response.goalIndex + 1}/${response.totalGoals}: ${response.currentGoal.split(':')[0]}</h3>`;
+            }
+            
+            chatMessages.appendChild(goalHeader);
+            
+            // Display response content
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'message bot-message goal-result';
+            responseDiv.innerHTML = formatResponseText(response.response);
+            chatMessages.appendChild(responseDiv);
+            
+            // Removed the Continue button since we now process all goals at once
+            
+            // Scroll to the bottom of the chat
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add a helper function to display query details with enhanced information
+        function displayQueryDetails(queryDetails, tweetCount) {
             const queryDiv = document.createElement('div');
             queryDiv.className = 'message query-details';
+            
+            // Get human-readable sort explanation
+            let sortExplanation = "";
+            if (queryDetails.sort) {
+                if (queryDetails.sort['timestamp'] === -1) {
+                    sortExplanation = "sorted by most recent first";
+                } else if (queryDetails.sort['metrics.likes'] === -1) {
+                    sortExplanation = "sorted by most liked first";
+                } else if (queryDetails.sort['metrics.retweets'] === -1) {
+                    sortExplanation = "sorted by most retweeted first";
+                } else if (queryDetails.sort['metrics.views'] === -1) {
+                    sortExplanation = "sorted by most viewed first";
+                } else {
+                    sortExplanation = `sorted by custom criteria: ${JSON.stringify(queryDetails.sort)}`;
+                }
+            }
+            
             queryDiv.innerHTML = `
                 <div class="query-info">
                     <strong>Query Details:</strong>
+                    <div class="query-summary">Analyzing ${queryDetails.limit || tweetCount} tweets ${sortExplanation}</div>
                     <pre>${JSON.stringify(queryDetails, null, 2)}</pre>
                     <div class="tweet-count">Found ${tweetCount} tweets</div>
                 </div>
@@ -3374,6 +4420,9 @@
             if (window.electronAPI.removeAutoScrapingEventListener) {
                 window.electronAPI.removeAutoScrapingEventListener();
             }
+            if (window.electronAPI.removeGoalExecutionProgressListener) {
+                window.electronAPI.removeGoalExecutionProgressListener();
+            }
         });
 
         // Add near the beginning of your script, perhaps right after variable declarations
@@ -3414,6 +4463,197 @@
             
             // ... rest of your existing initialization code ...
         });
+
+        // Function to set up goal progress listener
+        function setupGoalProgressListener(conversationId) {
+            // Remove any existing listener to prevent duplicates
+            window.electronAPI.removeGoalExecutionProgressListener();
+            
+            // Set active progress listener flag
+            activeProgressListener = true;
+            
+            console.log(`Setting up goal progress listener for conversationId: ${conversationId}`);
+            
+            // Set up goal execution progress listener
+            window.electronAPI.onGoalExecutionProgress((progress) => {
+                console.log('Goal execution progress received:', progress);
+                console.log('Current conversationId:', conversationId);
+                console.log('Progress conversationId:', progress.conversationId);
+                
+                // Only process events for the current conversation
+                if (progress.conversationId !== conversationId) {
+                    console.log('Ignoring progress event for different conversation ID');
+                    return;
+                }
+                
+                const container = document.getElementById('goalProgressContainer');
+                if (!container) {
+                    console.error('Goal progress container not found, creating one');
+                    // Create container if it doesn't exist
+                    const newContainer = document.createElement('div');
+                    newContainer.className = 'goal-progress-container';
+                    newContainer.id = 'goalProgressContainer';
+                    chatMessages.appendChild(newContainer);
+                    
+                    // Use the newly created container
+                    processGoalProgress(newContainer, progress);
+                } else {
+                    console.log('Found existing goal container, updating it');
+                    processGoalProgress(container, progress);
+                }
+                
+                // Scroll to the bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+            
+            return true;
+        }
+        
+        // Extract goal processing logic to a separate function
+        function processGoalProgress(container, progress) {
+            // Find or create a section for this goal
+            let goalSection = container.querySelector(`.goal-section[data-goal-index="${progress.goalIndex}"]`);
+            
+            if (!goalSection) {
+                console.log(`Creating new goal section for goal ${progress.goalIndex + 1}/${progress.totalGoals}`);
+                // Create a new goal section if it doesn't exist
+                goalSection = document.createElement('div');
+                goalSection.className = 'goal-section';
+                goalSection.setAttribute('data-goal-index', progress.goalIndex);
+                
+                // Add goal header
+                const goalHeader = document.createElement('div');
+                goalHeader.className = 'goal-header';
+                goalHeader.innerHTML = `<h3>Goal ${progress.goalIndex + 1}/${progress.totalGoals}: ${progress.goal.split(':')[0]}</h3>`;
+                goalSection.appendChild(goalHeader);
+                
+                // Add goal content placeholder with loading indicator
+                const goalContent = document.createElement('div');
+                goalContent.className = 'message bot-message goal-result in-progress';
+                goalContent.innerHTML = `
+                    <div class="goal-loading">
+                        <div class="goal-loader"></div>
+                        <div>Executing goal ${progress.goalIndex + 1}/${progress.totalGoals}...</div>
+                    </div>
+                `;
+                goalSection.appendChild(goalContent);
+                
+                // Add to container
+                container.appendChild(goalSection);
+            } else {
+                console.log(`Found existing goal section for goal ${progress.goalIndex + 1}`);
+            }
+            
+            // Update the goal section based on status
+            if (progress.status === 'completed' && progress.result) {
+                console.log(`Updating content for completed goal ${progress.goalIndex + 1}`);
+                // Update content with result
+                const goalContent = goalSection.querySelector('.goal-result');
+                if (goalContent) {
+                    goalContent.innerHTML = formatResponseText(progress.result);
+                    goalContent.classList.remove('in-progress');
+                }
+            }
+        }
+
+        // Update existing window unload handler to remove goal progress listener
+        window.addEventListener('beforeunload', () => {
+            if (window.electronAPI.removeAutoScrapingStatusListener) {
+                window.electronAPI.removeAutoScrapingStatusListener();
+            }
+            if (window.electronAPI.removeAutoScrapingEventListener) {
+                window.electronAPI.removeAutoScrapingEventListener();
+            }
+            if (window.electronAPI.removeGoalExecutionProgressListener) {
+                window.electronAPI.removeGoalExecutionProgressListener();
+            }
+        });
+
+        // Add a function to manage chat state
+        function resetChatState() {
+            // Generate new conversation ID
+            currentConversationId = Date.now().toString();
+            console.log('Chat state reset with new conversation ID:', currentConversationId);
+            
+            // Clear waiting state
+            awaitingTimeframe = false;
+            
+            // Remove any active progress listeners
+            if (activeProgressListener) {
+                console.log('Removing goal progress listener during state reset');
+                window.electronAPI.removeGoalExecutionProgressListener();
+                activeProgressListener = false;
+            }
+            
+            // Clean up any existing goal progress containers
+            const existingContainers = document.querySelectorAll('.goal-progress-container');
+            existingContainers.forEach(container => {
+                console.log('Marking goal container as completed during reset');
+                if (!container.classList.contains('completed')) {
+                    container.classList.add('completed');
+                }
+            });
+        }
+
+        // Add a debug helper function
+        function debugEvent(type, data) {
+            console.log(`[EVENT] ${type}:`, data);
+            // You can toggle this to false in production
+            const showDebugInfo = true;
+            
+            if (showDebugInfo) {
+                // Add debug info to the console only
+                const debugInfo = {
+                    timestamp: new Date().toISOString(),
+                    type: type,
+                    data: data
+                };
+                console.log('%c EVENT DEBUG ', 'background: #ffcc00; color: black', debugInfo);
+            }
+        }
+
+        // Update the setupGoalProgressListener function to use our debug helper
+        function setupGoalProgressListener(conversationId) {
+            // Remove any existing listener to prevent duplicates
+            window.electronAPI.removeGoalExecutionProgressListener();
+            
+            // Set active progress listener flag
+            activeProgressListener = true;
+            
+            debugEvent('setupListener', { conversationId });
+            
+            // Set up goal execution progress listener
+            window.electronAPI.onGoalExecutionProgress((progress) => {
+                debugEvent('progressEvent', progress);
+                
+                // Only process events for the current conversation
+                if (progress.conversationId !== conversationId) {
+                    debugEvent('ignoredEvent', { expected: conversationId, received: progress.conversationId });
+                    return;
+                }
+                
+                const container = document.getElementById('goalProgressContainer');
+                if (!container) {
+                    console.error('Goal progress container not found, creating one');
+                    // Create container if it doesn't exist
+                    const newContainer = document.createElement('div');
+                    newContainer.className = 'goal-progress-container';
+                    newContainer.id = 'goalProgressContainer';
+                    chatMessages.appendChild(newContainer);
+                    
+                    // Use the newly created container
+                    processGoalProgress(newContainer, progress);
+                } else {
+                    console.log('Found existing goal container, updating it');
+                    processGoalProgress(container, progress);
+                }
+                
+                // Scroll to the bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+            
+            return true;
+        }
     </script>
 </body>
 </html> 

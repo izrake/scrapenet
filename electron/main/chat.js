@@ -68,6 +68,8 @@ class ChatManager {
             throw new Error('LLM endpoint not configured');
         }
 
+        console.log(`queryLLM called with ${messages.length} messages, using model type: ${this.config.type}`);
+
         try {
             if (this.config.type === 'gemini') {
                 // Google Gemini API call
@@ -100,6 +102,7 @@ class ChatManager {
                 const endpoint = `${this.config.endpoint}/models/${this.config.model}:generateContent?key=${this.config.apiKey}`;
 
                 console.log('Sending Gemini query to:', endpoint);
+                console.log('Gemini request body length:', JSON.stringify(body).length);
 
                 return new Promise((resolve, reject) => {
                     const url = new URL(endpoint);
@@ -110,32 +113,49 @@ class ChatManager {
                         headers: headers
                     };
 
+                    console.log('Gemini request options:', { 
+                        hostname: url.hostname,
+                        path: url.pathname.split('?')[0], // don't log API key
+                        method: 'POST'
+                    });
+
                     const req = https.request(options, (res) => {
                         let data = '';
 
                         res.on('data', (chunk) => {
                             data += chunk;
+                            console.log(`Received chunk of data: ${chunk.length} bytes`);
                         });
 
                         res.on('end', () => {
+                            console.log(`Gemini API response status: ${res.statusCode}`);
+                            console.log(`Total response data length: ${data.length} bytes`);
+                            
                             if (res.statusCode >= 200 && res.statusCode < 300) {
                                 try {
                                     const responseData = JSON.parse(data);
                                     if (responseData.candidates && responseData.candidates[0]?.content?.parts[0]?.text) {
-                                        resolve(responseData.candidates[0].content.parts[0].text);
+                                        const responseText = responseData.candidates[0].content.parts[0].text;
+                                        console.log(`Gemini response received, length: ${responseText.length}`);
+                                        resolve(responseText);
                                     } else {
+                                        console.error('Invalid Gemini API response format:', responseData);
                                         reject(new Error('Invalid Gemini API response format'));
                                     }
                                 } catch (error) {
+                                    console.error('Failed to parse Gemini response:', error);
+                                    console.error('Raw response:', data);
                                     reject(new Error(`Failed to parse Gemini response: ${error.message}`));
                                 }
                             } else {
+                                console.error(`Gemini API error (${res.statusCode}):`, data);
                                 reject(new Error(`Gemini API error (${res.statusCode}): ${data}`));
                             }
                         });
                     });
 
                     req.on('error', (error) => {
+                        console.error('Gemini request failed:', error);
                         reject(new Error(`Gemini request failed: ${error.message}`));
                     });
 
@@ -167,6 +187,7 @@ class ChatManager {
                     : `${this.config.endpoint.replace(/\/$/, '')}/v1/chat/completions`;
 
                 console.log('Sending OpenAI query to:', endpoint);
+                console.log('OpenAI request body length:', JSON.stringify(body).length);
 
                 return new Promise((resolve, reject) => {
                     const url = new URL(endpoint);
@@ -177,28 +198,53 @@ class ChatManager {
                         headers: headers
                     };
 
+                    console.log('OpenAI request options:', { 
+                        hostname: url.hostname,
+                        path: url.pathname,
+                        method: 'POST'
+                    });
+
                     const req = https.request(options, (res) => {
                         let data = '';
-
+                        
                         res.on('data', (chunk) => {
                             data += chunk;
+                            console.log(`Received chunk of data: ${chunk.length} bytes`);
                         });
 
                         res.on('end', () => {
+                            console.log(`OpenAI API response status: ${res.statusCode}`);
+                            console.log(`Total response data length: ${data.length} bytes`);
+                            
                             if (res.statusCode >= 200 && res.statusCode < 300) {
                                 try {
                                     const responseData = JSON.parse(data);
-                                    resolve(responseData.choices[0].message.content);
+                                    
+                                    if (responseData.choices && responseData.choices[0]) {
+                                        const responseText = responseData.choices[0].message.content;
+                                        console.log(`OpenAI response received, length: ${responseText.length}`);
+                                        // Debug first and last 100 chars of the response
+                                        console.log(`Response start: "${responseText.substring(0, 100)}..."`);
+                                        console.log(`Response end: "...${responseText.substring(responseText.length - 100)}"`);
+                                        resolve(responseText);
+                                    } else {
+                                        console.error('Invalid OpenAI API response format:', responseData);
+                                        reject(new Error('Invalid OpenAI API response format'));
+                                    }
                                 } catch (error) {
+                                    console.error('Failed to parse OpenAI response:', error);
+                                    console.error('Raw response (first 500 chars):', data.substring(0, 500));
                                     reject(new Error(`Failed to parse OpenAI response: ${error.message}`));
                                 }
                             } else {
+                                console.error(`OpenAI API error (${res.statusCode}):`, data);
                                 reject(new Error(`OpenAI API error (${res.statusCode}): ${data}`));
                             }
                         });
                     });
 
                     req.on('error', (error) => {
+                        console.error('OpenAI request failed:', error);
                         reject(new Error(`OpenAI request failed: ${error.message}`));
                     });
 
@@ -207,16 +253,31 @@ class ChatManager {
                 });
             }
         } catch (error) {
-            console.error('LLM query error:', error);
+            console.error('Error in queryLLM:', error);
             throw error;
         }
     }
 
     async naturalToMongoQuery(naturalQuery) {
         try {
-            // Extract number of tweets if specified
-            const match = naturalQuery.match(/\b(\d+)\s*tweets?\b/i);
-            const limit = match ? parseInt(match[1]) : 100; // Default to 100 if not specified
+            // Extract number of tweets if specified using the enhanced pattern matching
+            let limit = 100; // Default to 100 if not specified
+            
+            // Match patterns like "500 tweets", "top 300 tweets", "100 most recent tweets", etc.
+            const quantityRegex = /\b(\d+)\s*(tweets|posts|most recent|latest|top)\b|\b(top|latest|most recent)\s*(\d+)\s*(tweets|posts)\b/i;
+            const match = naturalQuery.match(quantityRegex);
+            
+            if (match) {
+                // Extract the number from the match groups - could be in group 1 or group 4
+                const numberStr = match[1] || match[4];
+                if (numberStr) {
+                    const parsedLimit = parseInt(numberStr);
+                    if (!isNaN(parsedLimit) && parsedLimit > 0) {
+                        limit = parsedLimit;
+                        console.log(`Extracted tweet limit from query: ${limit}`);
+                    }
+                }
+            }
             
             const systemPrompt = {
                 role: 'system',
@@ -304,8 +365,14 @@ class ChatManager {
                     throw new Error('Invalid query structure. Missing required fields.');
                 }
 
-                // Ensure we have a reasonable limit
-                queryObject.limit = Math.min(limit, 1000); // Cap at 1000 tweets
+                // Override with the extracted limit if it exists
+                if (limit !== 100) {
+                    console.log(`Using extracted limit from query: ${limit}`);
+                    queryObject.limit = Math.min(limit, 1000); // Cap at 1000 tweets
+                } else {
+                    // Ensure we have a reasonable limit (use LLM-generated one)
+                    queryObject.limit = Math.min(queryObject.limit || 100, 1000); // Cap at 1000 tweets
+                }
 
                 // If no specific sort is provided, default to timestamp
                 if (!queryObject.sort || Object.keys(queryObject.sort).length === 0) {
@@ -322,10 +389,10 @@ class ChatManager {
                 console.error('Raw response:', response);
                 console.error('Cleaned response:', cleanedResponse);
                 
-                // Return a default query for any parsing errors
+                // Return a default query with the extracted limit for any parsing errors
                 return {
                     sort: { "timestamp": -1 },
-                    limit: 100
+                    limit: limit  // Use the extracted limit
                 };
             }
         } catch (error) {
@@ -390,8 +457,8 @@ class ChatManager {
                         if (totalTweets < limit) {
                             allTweets.push({
                                 _id: tweet.tweet_id,
-                                user_name: tweet.user.name,
-                                user_handle: tweet.user.handle,
+                                user_name: tweet.user?.name || 'Unknown User',
+                                user_handle: tweet.user?.handle || 'unknown',
                                 content: tweet.content,
                                 timestamp: new Date(tweet.timestamp),
                                 url: tweet.url,
@@ -435,6 +502,20 @@ class ChatManager {
         return timeKeywords.some(keyword => query.toLowerCase().includes(keyword));
     }
 
+    // Add new method to detect quantity-based queries
+    hasQuantitySpecification(query) {
+        // Match patterns like "500 tweets", "top 300 tweets", "100 most recent tweets", etc.
+        const quantityRegex = /\b(\d+)\s*(tweets|posts|most recent|latest|top)\b|\b(top|latest|most recent)\s*(\d+)\s*(tweets|posts)\b/i;
+        const match = query.match(quantityRegex);
+        
+        if (match) {
+            console.log('Quantity specification detected in query:', match[0]);
+            return true;
+        }
+        
+        return false;
+    }
+
     isUserSpecificQuery(query) {
         return query.toLowerCase().includes('from user') || 
                query.toLowerCase().includes('by user') ||
@@ -442,11 +523,17 @@ class ChatManager {
     }
 
     async handleTimeBasedQuery(query) {
+        // Skip asking for time specification if a quantity is already specified
+        if (this.hasQuantitySpecification(query)) {
+            console.log('Query already has quantity specification, skipping timeframe prompt');
+            return null;
+        }
+        
         // Return a prompt asking for time specification if not provided
         if (!query.match(/\d+\s*(day|week|month|year)s?/i)) {
             return {
                 needsMoreInfo: true,
-                prompt: "How many days of tweets would you like to analyze?"
+                prompt: "How many days of tweets would you like to analyze?\n\n(Tip: In the future, you can directly specify the number of tweets in your query, like 'Analyze top 500 tweets' to skip this step.)"
             };
         }
         return null; // Continue with normal processing
@@ -455,8 +542,8 @@ class ChatManager {
     async processNaturalQuery(query, timeframe = null) {
         let naturalQuery = query;
         
-        // If timeframe is provided, modify the query
-        if (timeframe) {
+        // If timeframe is provided and it's not already a quantity-based query, modify the query
+        if (timeframe && !this.hasQuantitySpecification(query)) {
             const days = parseInt(timeframe);
             if (!isNaN(days)) {
                 const dateQuery = `from the last ${days} days`;
@@ -468,6 +555,8 @@ class ChatManager {
     }
 
     async analyzeTweets(tweets, userPrompt) {
+        console.log(`analyzeTweets called with ${tweets.length} tweets and prompt: ${userPrompt}`);
+        
         const defaultSystemPrompt = `You are an intelligent and context-aware assistant that specializes in analyzing Twitter data. The user will provide a collection of tweets — which may include posts, replies, retweets, or quoted tweets — often spanning different users, tones, and topics.
 
                             Your job is to:
@@ -486,18 +575,118 @@ class ChatManager {
 
                             Be analytical, but conversational. Avoid generic fluff. Use examples from the tweet data to support your insights when possible.`;
 
-        const messages = [
-            {
-                role: 'system',
-                content: this.config?.systemPrompt || defaultSystemPrompt
-            },
-            {
-                role: 'user',
-                content: `Analyze these tweets: ${JSON.stringify(tweets)}\n\nUser request: ${userPrompt}`
-            }
-        ];
+        // Use a sample of tweets if there are too many to avoid token limits
+        let tweetsToAnalyze = tweets;
+        if (tweets.length > 50) {
+            console.log(`Sampling ${50} tweets from the total of ${tweets.length}`);
+            tweetsToAnalyze = tweets.slice(0, 50);
+        }
 
-        return await this.queryLLM(messages);
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: this.config?.systemPrompt || defaultSystemPrompt
+                },
+                {
+                    role: 'user',
+                    content: `Analyze these tweets: ${JSON.stringify(tweetsToAnalyze)}\n\nUser request: ${userPrompt}`
+                }
+            ];
+
+            console.log('Sending query to LLM with message length:', 
+                        messages[0].content.length + messages[1].content.length);
+            
+            const result = await this.queryLLM(messages);
+            console.log('Received response from LLM, length:', result ? result.length : 0);
+            console.log('Response preview:', result ? result.slice(0, 200) + '...' : 'No response');
+            console.log('Response end:', result ? '...' + result.slice(-200) : 'No response');
+            
+            return result;
+        } catch (error) {
+            console.error('Error in analyzeTweets:', error);
+            throw error;
+        }
+    }
+
+    async parseGoalsFromQuery(query) {
+        try {
+            console.log('Parsing goals from query:', query);
+            
+            const systemPrompt = {
+                role: 'system',
+                content: `You are an AI assistant that helps users to perform actions as passed into the user prompt. Your job is to break down user requests into clear, actionable goals and steps.
+
+                Given a user's query about Twitter data, you should:
+                1. Identify the main objective
+                2. Break it down into 2-4 sequential goals/steps
+                3. Format your response as follows:
+
+                I'll help you [main objective]. Here's my plan:
+
+                **Goals:**
+                1. [First goal]: [Brief explanation]
+                2. [Second goal]: [Brief explanation]
+                3. [Third goal, if applicable]: [Brief explanation]
+
+                Would you like me to proceed with this plan?
+
+                IMPORTANT GUIDELINES:
+                - Be specific and clear about what you'll analyze
+                - Focus only on Twitter data analysis goals
+                - Keep explanations concise but informative
+                - Make sure goals are sequential and build on each other
+                - Limit to 2-4 goals maximum
+                - If the query is very simple, still break it into at least 2 logical steps
+                - Do not reference any UI elements or technical implementation details
+                `
+            };
+
+            const userPrompt = {
+                role: 'user',
+                content: `Parse this user provided query request into goals: ${query}`
+            };
+
+            const response = await this.queryLLM([systemPrompt, userPrompt]);
+            console.log('Goals parsed from LLM:', response);
+            
+            return {
+                success: true,
+                goalsResponse: response
+            };
+        } catch (error) {
+            console.error('Error parsing goals:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async executeGoal(goal, tweets, originalQuery) {
+        console.log(`Executing goal: ${goal}`);
+        
+        const systemPrompt = {
+            role: 'system',
+            content: `You are an AI assistant analyzing Twitter data. You're currently executing a specific user provided goal.
+                      
+                      Focus only on completing the current goal. Be thorough yet concise in your analysis.
+                      Use specific examples from the provided tweets.
+                      Format your response well with headings, bullet points, and paragraphs as appropriate.
+                      
+                      Original user query: ${originalQuery}
+                      Current goal to execute: ${goal}`
+        };
+
+        const userPrompt = {
+            role: 'user',
+            content: `Complete this analysis goal using these tweets: ${JSON.stringify(tweets.slice(0, 50))}`
+        };
+
+        const result = await this.queryLLM([systemPrompt, userPrompt]);
+        console.log('Goal execution result length:', result ? result.length : 0);
+        
+        return result;
     }
 
     initializeHandlers() {
@@ -505,12 +694,118 @@ class ChatManager {
         this.handlers = [
             { channel: 'save-llm-config', handler: async (event, config) => await this.saveConfig(config) },
             { channel: 'get-llm-config', handler: async () => this.config },
-            { channel: 'chat-query', handler: async (event, { query, conversationId, timeframe = null }) => {
+            { channel: 'chat-query', handler: async (event, { query, conversationId, timeframe = null, approveGoals = false, executingGoalIndex = null }) => {
                 try {
+                    console.log('Received chat query:', { query, conversationId, timeframe, approveGoals, executingGoalIndex });
                     let conversation = this.conversations.get(conversationId);
                     if (!conversation) {
+                        // Initialize a new conversation
+                        console.log(`Creating new conversation with ID: ${conversationId}`);
                         conversation = { state: 'initial', context: {} };
                         this.conversations.set(conversationId, conversation);
+                    } else {
+                        console.log(`Using existing conversation with ID: ${conversationId}, state: ${conversation.state}`);
+                    }
+
+                    // If this is a goal approval response
+                    if (approveGoals) {
+                        console.log('User approved goals, setting up for execution');
+                        conversation.state = 'executing_goals';
+                        conversation.context.currentGoalIndex = 0;
+                        conversation.context.originalQuery = query;
+                        
+                        // Execute natural query to get tweets for analysis
+                        console.log('Getting tweets for goal execution...');
+                        const queryResults = await this.processNaturalQuery(query, timeframe);
+                        conversation.context.tweets = queryResults.results;
+                        conversation.context.queryDetails = queryResults.query;
+                        conversation.context.tweetCount = queryResults.count;
+                        
+                        // Execute all goals sequentially
+                        console.log(`Executing all ${conversation.context.goals.length} goals for conversation ${conversationId}`);
+                        
+                        const allGoalResults = [];
+                        
+                        // Execute each goal one by one
+                        for (let i = 0; i < conversation.context.goals.length; i++) {
+                            console.log(`Executing goal ${i + 1}/${conversation.context.goals.length}`);
+                            
+                            // Send progress update before executing this goal
+                            if (event.sender) {
+                                event.sender.send('goal-execution-progress', {
+                                    goalIndex: i,
+                                    totalGoals: conversation.context.goals.length,
+                                    goal: conversation.context.goals[i],
+                                    status: 'executing',
+                                    conversationId: conversationId
+                                });
+                                
+                                // Add a small delay to ensure UI can process
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                            
+                            // Execute the goal
+                            const goalResult = await this.executeGoal(
+                                conversation.context.goals[i], 
+                                conversation.context.tweets,
+                                conversation.context.originalQuery
+                            );
+                            
+                            // Store the result
+                            allGoalResults.push({
+                                goalIndex: i,
+                                goal: conversation.context.goals[i],
+                                result: goalResult
+                            });
+                            
+                            // Send progress update after executing this goal
+                            if (event.sender) {
+                                event.sender.send('goal-execution-progress', {
+                                    goalIndex: i,
+                                    totalGoals: conversation.context.goals.length,
+                                    goal: conversation.context.goals[i],
+                                    status: 'completed',
+                                    result: goalResult,
+                                    conversationId: conversationId
+                                });
+                                
+                                // Add a small delay to ensure UI can process
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                        }
+                        
+                        // Reset state after execution
+                        conversation.state = 'initial';
+                        
+                        // Return all goal results
+                        return {
+                            success: true,
+                            isGoalExecution: true,
+                            isComplete: true,
+                            allGoalResults: allGoalResults,
+                            totalGoals: conversation.context.goals.length,
+                            queryDetails: queryResults.query,
+                            tweetCount: queryResults.count
+                        };
+                    }
+                    
+                    // If we're in the process of executing goals
+                    if (executingGoalIndex !== null && conversation.state === 'executing_goals') {
+                        // This path won't be used with automatic execution
+                        // But kept for backward compatibility
+                        console.log('Legacy goal execution path called - should not happen');
+                        
+                        // Reset state
+                        conversation.state = 'initial';
+                        
+                        return {
+                            success: true,
+                            isGoalExecution: true,
+                            isComplete: true,
+                            response: "All analysis goals have been completed. Is there anything else you'd like to know about the data?",
+                            queryDetails: conversation.context.queryDetails,
+                            tweetCount: conversation.context.tweetCount
+                        };
                     }
 
                     // Handle time-based queries
@@ -519,6 +814,7 @@ class ChatManager {
                         if (timeCheck?.needsMoreInfo) {
                             conversation.state = 'awaiting_timeframe';
                             conversation.context.originalQuery = query;
+                            console.log('Requesting timeframe from user');
                             return {
                                 success: true,
                                 needsMoreInfo: true,
@@ -533,19 +829,75 @@ class ChatManager {
                         timeframe = timeframe || query; // Use the provided timeframe
                         conversation.state = 'initial';
                     }
-
+                    
+                    // Parse the query into goals first
+                    console.log('Parsing query into goals...');
+                    const goalsResult = await this.parseGoalsFromQuery(query);
+                    
+                    if (goalsResult.success) {
+                        // Extract goals from response
+                        const goalResponse = goalsResult.goalsResponse;
+                        
+                        // Find the list of goals in the response using regex
+                        const goalRegex = /\*\*Goals:\*\*\s*([\s\S]+?)(?=\n\n|$)/;
+                        const match = goalResponse.match(goalRegex);
+                        
+                        if (match && match[1]) {
+                            // Extract individual goals
+                            const goalList = match[1].split(/\n\d+\.\s+/).filter(Boolean);
+                            console.log('Extracted goals:', goalList);
+                            
+                            // Store the goals in the conversation context
+                            conversation.state = 'awaiting_goal_approval';
+                            conversation.context.goals = goalList;
+                            conversation.context.originalQuery = query;
+                            
+                            return {
+                                success: true,
+                                awaitingGoalApproval: true,
+                                goalsResponse: goalResponse,
+                                conversationId: conversationId
+                            };
+                        }
+                    }
+                    
+                    // Fall back to regular query if goal parsing fails
+                    console.log('Falling back to regular query...');
+                    
                     // Execute the natural query to get relevant tweets
+                    console.log('Processing natural query...');
                     const queryResults = await this.processNaturalQuery(query, timeframe);
+                    console.log(`Retrieved ${queryResults.results.length} tweets for analysis`);
 
                     // Analyze the results based on the user's prompt
+                    console.log('Sending tweets to LLM for analysis...');
                     const analysis = await this.analyzeTweets(queryResults.results, query);
+                    console.log('Received analysis from LLM, length:', analysis?.length || 0);
+                    
+                    // Log analysis chunks to verify full response
+                    if (analysis) {
+                        const chunkSize = 500;
+                        console.log(`Logging analysis in ${Math.ceil(analysis.length / chunkSize)} chunks:`);
+                        for (let i = 0; i < analysis.length; i += chunkSize) {
+                            const chunk = analysis.substring(i, i + chunkSize);
+                            console.log(`Chunk ${Math.floor(i / chunkSize) + 1}:`, chunk);
+                        }
+                    }
 
-                    return {
+                    const response = {
                         success: true,
                         response: analysis,
                         queryDetails: queryResults.query,
                         tweetCount: queryResults.count
                     };
+                    
+                    console.log('Sending response to renderer:', {
+                        success: response.success,
+                        responseLength: response.response?.length || 0,
+                        tweetCount: response.tweetCount
+                    });
+                    
+                    return response;
 
                 } catch (error) {
                     console.error('Chat query error:', error);
