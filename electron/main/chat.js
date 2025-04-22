@@ -260,9 +260,24 @@ class ChatManager {
 
     async naturalToMongoQuery(naturalQuery) {
         try {
-            // Extract number of tweets if specified
-            const match = naturalQuery.match(/\b(\d+)\s*tweets?\b/i);
-            const limit = match ? parseInt(match[1]) : 100; // Default to 100 if not specified
+            // Extract number of tweets if specified using the enhanced pattern matching
+            let limit = 100; // Default to 100 if not specified
+            
+            // Match patterns like "500 tweets", "top 300 tweets", "100 most recent tweets", etc.
+            const quantityRegex = /\b(\d+)\s*(tweets|posts|most recent|latest|top)\b|\b(top|latest|most recent)\s*(\d+)\s*(tweets|posts)\b/i;
+            const match = naturalQuery.match(quantityRegex);
+            
+            if (match) {
+                // Extract the number from the match groups - could be in group 1 or group 4
+                const numberStr = match[1] || match[4];
+                if (numberStr) {
+                    const parsedLimit = parseInt(numberStr);
+                    if (!isNaN(parsedLimit) && parsedLimit > 0) {
+                        limit = parsedLimit;
+                        console.log(`Extracted tweet limit from query: ${limit}`);
+                    }
+                }
+            }
             
             const systemPrompt = {
                 role: 'system',
@@ -350,8 +365,14 @@ class ChatManager {
                     throw new Error('Invalid query structure. Missing required fields.');
                 }
 
-                // Ensure we have a reasonable limit
-                queryObject.limit = Math.min(limit, 1000); // Cap at 1000 tweets
+                // Override with the extracted limit if it exists
+                if (limit !== 100) {
+                    console.log(`Using extracted limit from query: ${limit}`);
+                    queryObject.limit = Math.min(limit, 1000); // Cap at 1000 tweets
+                } else {
+                    // Ensure we have a reasonable limit (use LLM-generated one)
+                    queryObject.limit = Math.min(queryObject.limit || 100, 1000); // Cap at 1000 tweets
+                }
 
                 // If no specific sort is provided, default to timestamp
                 if (!queryObject.sort || Object.keys(queryObject.sort).length === 0) {
@@ -368,10 +389,10 @@ class ChatManager {
                 console.error('Raw response:', response);
                 console.error('Cleaned response:', cleanedResponse);
                 
-                // Return a default query for any parsing errors
+                // Return a default query with the extracted limit for any parsing errors
                 return {
                     sort: { "timestamp": -1 },
-                    limit: 100
+                    limit: limit  // Use the extracted limit
                 };
             }
         } catch (error) {
@@ -481,6 +502,20 @@ class ChatManager {
         return timeKeywords.some(keyword => query.toLowerCase().includes(keyword));
     }
 
+    // Add new method to detect quantity-based queries
+    hasQuantitySpecification(query) {
+        // Match patterns like "500 tweets", "top 300 tweets", "100 most recent tweets", etc.
+        const quantityRegex = /\b(\d+)\s*(tweets|posts|most recent|latest|top)\b|\b(top|latest|most recent)\s*(\d+)\s*(tweets|posts)\b/i;
+        const match = query.match(quantityRegex);
+        
+        if (match) {
+            console.log('Quantity specification detected in query:', match[0]);
+            return true;
+        }
+        
+        return false;
+    }
+
     isUserSpecificQuery(query) {
         return query.toLowerCase().includes('from user') || 
                query.toLowerCase().includes('by user') ||
@@ -488,11 +523,17 @@ class ChatManager {
     }
 
     async handleTimeBasedQuery(query) {
+        // Skip asking for time specification if a quantity is already specified
+        if (this.hasQuantitySpecification(query)) {
+            console.log('Query already has quantity specification, skipping timeframe prompt');
+            return null;
+        }
+        
         // Return a prompt asking for time specification if not provided
         if (!query.match(/\d+\s*(day|week|month|year)s?/i)) {
             return {
                 needsMoreInfo: true,
-                prompt: "How many days of tweets would you like to analyze?"
+                prompt: "How many days of tweets would you like to analyze?\n\n(Tip: In the future, you can directly specify the number of tweets in your query, like 'Analyze top 500 tweets' to skip this step.)"
             };
         }
         return null; // Continue with normal processing
@@ -501,8 +542,8 @@ class ChatManager {
     async processNaturalQuery(query, timeframe = null) {
         let naturalQuery = query;
         
-        // If timeframe is provided, modify the query
-        if (timeframe) {
+        // If timeframe is provided and it's not already a quantity-based query, modify the query
+        if (timeframe && !this.hasQuantitySpecification(query)) {
             const days = parseInt(timeframe);
             if (!isNaN(days)) {
                 const dateQuery = `from the last ${days} days`;
@@ -574,7 +615,7 @@ class ChatManager {
             
             const systemPrompt = {
                 role: 'system',
-                content: `You are an AI assistant that helps users analyze Twitter data. Your job is to break down user requests into clear, actionable goals and steps.
+                content: `You are an AI assistant that helps users to perform actions as passed into the user prompt. Your job is to break down user requests into clear, actionable goals and steps.
 
                 Given a user's query about Twitter data, you should:
                 1. Identify the main objective
@@ -603,7 +644,7 @@ class ChatManager {
 
             const userPrompt = {
                 role: 'user',
-                content: `Parse this Twitter data analysis request into goals: ${query}`
+                content: `Parse this user provided query request into goals: ${query}`
             };
 
             const response = await this.queryLLM([systemPrompt, userPrompt]);
@@ -627,7 +668,7 @@ class ChatManager {
         
         const systemPrompt = {
             role: 'system',
-            content: `You are an AI assistant analyzing Twitter data. You're currently executing a specific analysis goal.
+            content: `You are an AI assistant analyzing Twitter data. You're currently executing a specific user provided goal.
                       
                       Focus only on completing the current goal. Be thorough yet concise in your analysis.
                       Use specific examples from the provided tweets.

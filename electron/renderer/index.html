@@ -2300,6 +2300,28 @@
             0% { opacity: 0; transform: translateY(10px); }
             100% { opacity: 1; transform: translateY(0); }
         }
+
+        .query-info {
+            padding: 15px;
+            background: #f8f8fa;
+            border-radius: 10px;
+        }
+
+        .query-summary {
+            background: #e8f5e9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 8px 0 12px 0;
+            font-weight: 500;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+
+        .tweet-count {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #1565c0;
+        }
     </style>
 </head>
 <body>
@@ -3688,7 +3710,7 @@
             console.log('Message added to chat');
         }
 
-        // Add new function to create progress steps
+        // Function to create progress steps
         function createProgressSteps() {
             const stepsDiv = document.createElement('div');
             stepsDiv.className = 'progress-steps';
@@ -3697,7 +3719,7 @@
                     <div class="step-icon">1</div>
                     <div class="step-content">
                         <div class="step-title">Retrieving Tweets</div>
-                        <div class="step-details">Fetching relevant tweets from the database</div>
+                        <div class="step-details">Finding relevant tweets</div>
                         <div class="step-timing"></div>
                     </div>
                     <div class="step-loader">
@@ -3959,16 +3981,7 @@
                     
                     // Add query details if available
                     if (response.queryDetails) {
-                        const queryDiv = document.createElement('div');
-                        queryDiv.className = 'message query-details';
-                        queryDiv.innerHTML = `
-                            <div class="query-info">
-                                <strong>Query Details:</strong>
-                                <pre>${JSON.stringify(response.queryDetails, null, 2)}</pre>
-                                <div class="tweet-count">Found ${response.tweetCount} tweets</div>
-                            </div>
-                        `;
-                        chatMessages.appendChild(queryDiv);
+                        displayQueryDetails(response.queryDetails, response.tweetCount);
                     }
                     
                     // Add AI response
@@ -4104,12 +4117,31 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function addQueryDetails(queryDetails, tweetCount) {
+        // Add a helper function to display query details with enhanced information
+        function displayQueryDetails(queryDetails, tweetCount) {
             const queryDiv = document.createElement('div');
             queryDiv.className = 'message query-details';
+            
+            // Get human-readable sort explanation
+            let sortExplanation = "";
+            if (queryDetails.sort) {
+                if (queryDetails.sort['timestamp'] === -1) {
+                    sortExplanation = "sorted by most recent first";
+                } else if (queryDetails.sort['metrics.likes'] === -1) {
+                    sortExplanation = "sorted by most liked first";
+                } else if (queryDetails.sort['metrics.retweets'] === -1) {
+                    sortExplanation = "sorted by most retweeted first";
+                } else if (queryDetails.sort['metrics.views'] === -1) {
+                    sortExplanation = "sorted by most viewed first";
+                } else {
+                    sortExplanation = `sorted by custom criteria: ${JSON.stringify(queryDetails.sort)}`;
+                }
+            }
+            
             queryDiv.innerHTML = `
                 <div class="query-info">
                     <strong>Query Details:</strong>
+                    <div class="query-summary">Analyzing ${queryDetails.limit || tweetCount} tweets ${sortExplanation}</div>
                     <pre>${JSON.stringify(queryDetails, null, 2)}</pre>
                     <div class="tweet-count">Found ${tweetCount} tweets</div>
                 </div>
