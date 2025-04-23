@@ -148,16 +148,14 @@ class APIServer {
                 const tweetLimit = Math.min(parseInt(limit) || 10, 500);
                 
                 // Perform the scraping operation
-                const scrapingResult = await this.scraper.scrapeTweets(query, tweetLimit);
-                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId);
+                const scrapingResult = await this.scraper.scrapeTweets(query, tweetLimit, 'api');
+                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId,'api');
                 
                 // Mark that this request came from the API
                 const source = 'api';
                 
                 if (publicKey) {
                     try {
-                        // Save tweets with encryption info to indicate it's from API
-                        await this.scraper.saveTweets(tweets, 'search', query, source, publicKey);
                         
                         // Return encrypted response
                         const encryptedData = this.encryptData(tweets, publicKey);
@@ -171,8 +169,6 @@ class APIServer {
                         return res.status(400).json({ error: 'Invalid public key or encryption error' });
                     }
                 } else {
-                    // Save tweets with source info but no encryption
-                    await this.scraper.saveTweets(tweets, 'search', query, source);
                     res.json({ 
                         status: 'success', 
                         tweets: tweets
@@ -204,8 +200,8 @@ class APIServer {
                 const tweetLimit = Math.min(parseInt(limit) || 10, 500);
                 
                 // Perform the scraping operation
-                const scrapingResult = await this.scraper.scrapeProfile(username, tweetLimit);
-                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId);
+                const scrapingResult = await this.scraper.scrapeProfile(username, tweetLimit,'api');
+                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId,'api');
                 
                 // Get profile info if available
                 const profileInfo = scrapingResult.profile || await this.scraper.extractProfileInfo();
@@ -266,8 +262,8 @@ class APIServer {
                 const tweetLimit = Math.min(parseInt(limit) || 10, 500);
                 
                 // Perform the scraping operation
-                const scrapingResult = await this.scraper.scrapeHomeTimeline(tweetLimit);
-                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId);
+                const scrapingResult = await this.scraper.scrapeHomeTimeline(tweetLimit,'api');
+                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId,'api');
                 
                 // Mark that this request came from the API
                 const source = 'api';

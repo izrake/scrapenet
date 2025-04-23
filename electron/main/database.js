@@ -105,10 +105,10 @@ class TweetDatabase {
         }
     }
 
-    async saveTweet(tweet, sessionId, temp_delete = false) {
+    async saveTweet(tweet, sessionId, source = 'app') {
         try {
             debugLog('\n=== Starting Tweet Save ===');
-            debugLog('Tweet:', { url: tweet.url, sessionId, temp_delete });
+            debugLog('Tweet:', { url: tweet.url, sessionId });
             
             // Extract tweet ID from URL
             const tweet_id = tweet.url.split('/status/')[1]?.split('?')[0];
@@ -117,10 +117,13 @@ class TweetDatabase {
             }
             debugLog('Extracted tweet_id:', tweet_id);
 
-            // Save to session's temp file
-            const tempFileName = `session_${sessionId}.json`;
-            const tempFilePath = path.join(this.tempDir, tempFileName);
-            const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            let localSessionPath;
+            if(source === 'app') {
+                localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            } else if(source === 'api') {
+                localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+            }
+
 
             // Use a lock file to prevent concurrent writes
             const lockFile = localSessionPath + '.lock';
@@ -453,8 +456,15 @@ class TweetDatabase {
                     updated_at: new Date().toISOString(),
                     tweets: []
                 };
-
-                const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                let localSessionPath;
+                if(source === 'app') 
+                    {
+                     localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                    }
+                    else {
+                        localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+                    }
+                
                 await fsPromises.writeFile(localSessionPath, JSON.stringify(sessionData, null, 2));
                 console.log('Created local session file:', localSessionPath);
             }
@@ -536,7 +546,13 @@ class TweetDatabase {
                 return result.modifiedCount > 0;
             } else {
                 // For local storage, just update the local session file
-                const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                let localSessionPath;
+                if(source === 'app') {
+                    localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                }
+                else {
+                    localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+                }
                 const sessionData = JSON.parse(await fsPromises.readFile(localSessionPath, 'utf8'));
                 
                 // Update session status
@@ -787,7 +803,7 @@ class TweetDatabase {
         return { sessionsByDate: sortedSessionsByDate };
     }
 
-    async getTweetsBySession(sessionId) {
+    async getTweetsBySession(sessionId, source = 'app') {
         try {
             console.log('\n=== Getting Tweets by Session ===');
             console.log('Session ID:', sessionId);
@@ -804,7 +820,14 @@ class TweetDatabase {
                 return tweets;
             } else {
                 // For local storage, read from the session file
-                const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                let localSessionPath;
+                if(source === 'app') {
+                     localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                }
+                else {
+                    localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+                }
+                
                 const sessionData = JSON.parse(await fsPromises.readFile(localSessionPath, 'utf8'));
                 
                 console.log(`Found ${sessionData.tweets.length} tweets in local session`);
