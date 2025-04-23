@@ -37,5 +37,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveLLMConfig: (config) => ipcRenderer.invoke('save-llm-config', config),
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     chatQuery: (params) => ipcRenderer.invoke('chat-query', params),
-    naturalQuery: (query) => ipcRenderer.invoke('natural-query', query)
+    naturalQuery: (query) => ipcRenderer.invoke('natural-query', query),
+    
+    // Goal execution progress
+    onGoalExecutionProgress: (callback) => {
+        ipcRenderer.on('goal-execution-progress', (_, progress) => callback(progress));
+    },
+    removeGoalExecutionProgressListener: () => {
+        ipcRenderer.removeAllListeners('goal-execution-progress');
+    }
 }); 
