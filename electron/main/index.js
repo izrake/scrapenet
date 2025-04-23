@@ -672,5 +672,21 @@ ipcMain.handle('disable-delegation', async () => {
     return result;
 });
 
+// Add new handler for API logs
+ipcMain.handle('get-api-logs', async (event, options = {}) => {
+    try {
+        console.log('Getting API logs with options:', options);
+        if (!apiServer || !apiServer.logger) {
+            throw new Error('API logger not available');
+        }
+        
+        const logs = await apiServer.logger.getApiLogs(options);
+        return { success: true, logs };
+    } catch (error) {
+        console.error('Error retrieving API logs:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 // Export for TypeScript support
 module.exports = app; 

@@ -262,14 +262,19 @@ class TweetDatabase {
         }
     }
 
-    async saveProfile(profile, sessionId) {
+    async saveProfile(profile, sessionId, source = 'app') {
         try {
             console.log('\n=== Saving Profile ===');
             console.log('Profile:', JSON.stringify(profile, null, 2));
             console.log('Session ID:', sessionId);
 
             const now = new Date();
-            const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            let localSessionPath;
+            if(source === 'app') {
+                localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            } else if(source === 'api') {
+                localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+            }
             
             // Use a lock file to prevent concurrent writes
             const lockFile = localSessionPath + '.lock';

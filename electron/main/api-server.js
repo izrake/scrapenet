@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const Logger = require('./logger');
 
 class APIServer {
     constructor(scraper) {
@@ -9,10 +10,62 @@ class APIServer {
         this.server = null;
         this.port = process.env.API_PORT || 3000;
         this.isDelegationEnabled = false;
+        this.logger = new Logger({ filePrefix: 'api-audit' });
+
+        // Initialize logger
+        this.logger.initialize().then(() => {
+            this.logger.info('API Server logger initialized');
+        }).catch(err => {
+            console.error('Failed to initialize API Server logger:', err);
+        });
 
         // Middleware
         this.app.use(cors());
         this.app.use(express.json());
+        
+        // Request audit logging middleware
+        this.app.use((req, res, next) => {
+            // Record the start time
+            req.startTime = Date.now();
+
+            // Store logger reference for access in the closure
+            const logger = this.logger;
+
+            // Capture the original send method
+            const originalSend = res.send;
+            
+            // Override the send method to capture response
+            res.send = function(body) {
+                // Restore the original send method to avoid infinite loops
+                res.send = originalSend;
+                
+                // Calculate response time
+                const responseTime = Date.now() - req.startTime;
+                
+                // Log the request and response details
+                try {
+                    let responseData = body;
+                    if (typeof body === 'string') {
+                        try {
+                            responseData = JSON.parse(body);
+                        } catch (e) {
+                            // Not JSON, keep as string
+                            responseData = body.substring(0, 100) + (body.length > 100 ? '...' : '');
+                        }
+                    }
+                    
+                    // Use the stored logger reference instead of this.logger
+                    logger.logApiRequest(req, res, responseTime, responseData);
+                } catch (error) {
+                    console.error('Error in API audit logging:', error);
+                }
+                
+                // Call the original send method
+                return originalSend.call(this, body);
+            };
+            
+            next();
+        });
 
         // API Documentation endpoint
         this.app.get('/api/docs', (req, res) => {
@@ -132,17 +185,29 @@ class APIServer {
         this.app.post('/api/scrape/tweets', async (req, res) => {
             try {
                 if (!this.scraper.isLoggedIn) {
+                    this.logger.warn('API attempt without login', { endpoint: '/api/scrape/tweets', ip: req.ip });
                     return res.status(403).json({ error: 'Not logged in to Twitter' });
                 }
 
                 if (!this.isDelegationEnabled) {
+                    this.logger.warn('API attempt without delegation', { endpoint: '/api/scrape/tweets', ip: req.ip });
                     return res.status(403).json({ error: 'API delegation is not enabled' });
                 }
 
                 const { query, limit = 10, publicKey } = req.body;
                 if (!query) {
+                    this.logger.warn('API request missing query', { endpoint: '/api/scrape/tweets', ip: req.ip });
                     return res.status(400).json({ error: 'Query parameter is required' });
                 }
+
+                // Log start of scraping operation
+                this.logger.info('Starting tweet scrape', { 
+                    endpoint: '/api/scrape/tweets',
+                    query,
+                    limit: Math.min(parseInt(limit) || 10, 500),
+                    hasPublicKey: !!publicKey,
+                    ip: req.ip
+                });
 
                 // Enforce tweet limit
                 const tweetLimit = Math.min(parseInt(limit) || 10, 500);
@@ -151,8 +216,14 @@ class APIServer {
                 const scrapingResult = await this.scraper.scrapeTweets(query, tweetLimit, 'api');
                 const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId,'api');
                 
-                // Mark that this request came from the API
-                const source = 'api';
+                // Log successful scrape
+                this.logger.info('Tweet scrape completed', {
+                    endpoint: '/api/scrape/tweets',
+                    query,
+                    tweetsFound: tweets ? tweets.length : 0,
+                    sessionId: scrapingResult.sessionId
+                });
+            
                 
                 if (publicKey) {
                     try {
@@ -165,7 +236,11 @@ class APIServer {
                             data: encryptedData
                         });
                     } catch (error) {
-                        console.error('Encryption error:', error);
+                        this.logger.error('Encryption error', {
+                            endpoint: '/api/scrape/tweets',
+                            query,
+                            error: error.message
+                        });
                         return res.status(400).json({ error: 'Invalid public key or encryption error' });
                     }
                 } else {
@@ -175,6 +250,11 @@ class APIServer {
                     });
                 }
             } catch (error) {
+                this.logger.error('Tweet scraping error', {
+                    endpoint: '/api/scrape/tweets',
+                    error: error.message,
+                    stack: error.stack
+                });
                 console.error('Tweet scraping error:', error);
                 res.status(500).json({ error: 'Failed to scrape tweets: ' + error.message });
             }
@@ -184,17 +264,29 @@ class APIServer {
         this.app.post('/api/scrape/profile', async (req, res) => {
             try {
                 if (!this.scraper.isLoggedIn) {
+                    this.logger.warn('API attempt without login', { endpoint: '/api/scrape/profile', ip: req.ip });
                     return res.status(403).json({ error: 'Not logged in to Twitter' });
                 }
 
                 if (!this.isDelegationEnabled) {
+                    this.logger.warn('API attempt without delegation', { endpoint: '/api/scrape/profile', ip: req.ip });
                     return res.status(403).json({ error: 'API delegation is not enabled' });
                 }
 
                 const { username, limit = 10, publicKey } = req.body;
                 if (!username) {
+                    this.logger.warn('API request missing username', { endpoint: '/api/scrape/profile', ip: req.ip });
                     return res.status(400).json({ error: 'Username parameter is required' });
                 }
+
+                // Log start of scraping operation
+                this.logger.info('Starting profile scrape', { 
+                    endpoint: '/api/scrape/profile',
+                    username,
+                    limit: Math.min(parseInt(limit) || 10, 500),
+                    hasPublicKey: !!publicKey,
+                    ip: req.ip
+                });
 
                 // Enforce tweet limit
                 const tweetLimit = Math.min(parseInt(limit) || 10, 500);
@@ -205,6 +297,15 @@ class APIServer {
                 
                 // Get profile info if available
                 const profileInfo = scrapingResult.profile || await this.scraper.extractProfileInfo();
+                
+                // Log successful scrape
+                this.logger.info('Profile scrape completed', {
+                    endpoint: '/api/scrape/profile',
+                    username,
+                    tweetsFound: tweets ? tweets.length : 0,
+                    hasProfileInfo: !!profileInfo,
+                    sessionId: scrapingResult.sessionId
+                });
                 
                 // Format the full response data
                 const responseData = {
@@ -228,18 +329,27 @@ class APIServer {
                             data: encryptedData
                         });
                     } catch (error) {
-                        console.error('Encryption error:', error);
+                        this.logger.error('Encryption error', {
+                            endpoint: '/api/scrape/profile',
+                            username,
+                            error: error.message
+                        });
                         return res.status(400).json({ error: 'Invalid public key or encryption error' });
                     }
                 } else {
                     // Save tweets with source info but no encryption
-                    await this.scraper.saveTweets(tweets, 'profile', username, source);
+                    //await this.scraper.saveTweets(tweets, 'profile', username, source);
                     res.json({ 
                         status: 'success', 
                         data: responseData
                     });
                 }
             } catch (error) {
+                this.logger.error('Profile scraping error', {
+                    endpoint: '/api/scrape/profile',
+                    error: error.message,
+                    stack: error.stack
+                });
                 console.error('Profile scraping error:', error);
                 res.status(500).json({ error: 'Failed to scrape profile: ' + error.message });
             }
@@ -249,21 +359,38 @@ class APIServer {
         this.app.post('/api/scrape/home', async (req, res) => {
             try {
                 if (!this.scraper.isLoggedIn) {
+                    this.logger.warn('API attempt without login', { endpoint: '/api/scrape/home', ip: req.ip });
                     return res.status(403).json({ error: 'Not logged in to Twitter' });
                 }
 
                 if (!this.isDelegationEnabled) {
+                    this.logger.warn('API attempt without delegation', { endpoint: '/api/scrape/home', ip: req.ip });
                     return res.status(403).json({ error: 'API delegation is not enabled' });
                 }
 
                 const { limit = 10, publicKey } = req.body;
                 
+                // Log start of scraping operation
+                this.logger.info('Starting home timeline scrape', { 
+                    endpoint: '/api/scrape/home',
+                    limit: Math.min(parseInt(limit) || 10, 500),
+                    hasPublicKey: !!publicKey,
+                    ip: req.ip
+                });
+
                 // Enforce tweet limit
                 const tweetLimit = Math.min(parseInt(limit) || 10, 500);
                 
                 // Perform the scraping operation
-                const scrapingResult = await this.scraper.scrapeHomeTimeline(tweetLimit,'api');
-                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId,'api');
+                const scrapingResult = await this.scraper.scrapeHomeTimeline(tweetLimit, 'api');
+                const tweets = await this.scraper.getTweetsBySession(scrapingResult.sessionId, 'api');
+                
+                // Log successful scrape
+                this.logger.info('Home timeline scrape completed', {
+                    endpoint: '/api/scrape/home',
+                    tweetsFound: tweets ? tweets.length : 0,
+                    sessionId: scrapingResult.sessionId
+                });
                 
                 // Mark that this request came from the API
                 const source = 'api';
@@ -271,7 +398,7 @@ class APIServer {
                 if (publicKey) {
                     try {
                         // Save tweets with encryption info to indicate it's from API
-                        await this.scraper.saveTweets(tweets, 'home', 'timeline', source, publicKey);
+                        await this.scraper.saveTweets(tweets, 'home', null, source, publicKey);
                         
                         // Return encrypted response
                         const encryptedData = this.encryptData(tweets, publicKey);
@@ -281,18 +408,26 @@ class APIServer {
                             data: encryptedData
                         });
                     } catch (error) {
-                        console.error('Encryption error:', error);
+                        this.logger.error('Encryption error', {
+                            endpoint: '/api/scrape/home',
+                            error: error.message
+                        });
                         return res.status(400).json({ error: 'Invalid public key or encryption error' });
                     }
                 } else {
                     // Save tweets with source info but no encryption
-                    await this.scraper.saveTweets(tweets, 'home', 'timeline', source);
+                    //await this.scraper.saveTweets(tweets, 'home', null, source);
                     res.json({ 
                         status: 'success', 
                         tweets: tweets
                     });
                 }
             } catch (error) {
+                this.logger.error('Home timeline scraping error', {
+                    endpoint: '/api/scrape/home',
+                    error: error.message,
+                    stack: error.stack
+                });
                 console.error('Home timeline scraping error:', error);
                 res.status(500).json({ error: 'Failed to scrape home timeline: ' + error.message });
             }
@@ -362,10 +497,12 @@ class APIServer {
             try {
                 this.server = this.app.listen(this.port, () => {
                     console.log(`API server running on port ${this.port}`);
-                    resolve();
+                    this.logger.info('API server started', { port: this.port });
+                    resolve(true);
                 });
             } catch (error) {
                 console.error('Failed to start API server:', error);
+                this.logger.error('API server start failed', { error: error.message });
                 reject(error);
             }
         });
@@ -374,17 +511,21 @@ class APIServer {
     async stop() {
         return new Promise((resolve, reject) => {
             if (this.server) {
-                this.server.close((error) => {
-                    if (error) {
-                        console.error('Error stopping API server:', error);
-                        reject(error);
+                this.server.close((err) => {
+                    if (err) {
+                        console.error('Error stopping API server:', err);
+                        this.logger.error('API server stop failed', { error: err.message });
+                        reject(err);
                     } else {
                         console.log('API server stopped');
-                        resolve();
+                        this.logger.info('API server stopped');
+                        this.server = null;
+                        resolve(true);
                     }
                 });
             } else {
-                resolve();
+                console.log('API server not running');
+                resolve(true);
             }
         });
     }

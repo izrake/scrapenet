@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     enableDelegation: () => ipcRenderer.invoke('enable-delegation'),
     disableDelegation: () => ipcRenderer.invoke('disable-delegation'),
     
+    // Add API logs method
+    getApiLogs: (options) => ipcRenderer.invoke('get-api-logs', options),
+    
     // Auto-scraping methods
     startAutoScraping: (options) => ipcRenderer.invoke('start-auto-scraping', options),
     stopAutoScraping: () => ipcRenderer.invoke('stop-auto-scraping'),

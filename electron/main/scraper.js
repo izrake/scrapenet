@@ -409,16 +409,6 @@ class TwitterScraper {
             const tweets = await this.extractTweets(limit);
             console.log(`Extracted ${tweets.length} tweets`);
 
-            // Save to temporary storage first
-            console.log('\n=== Saving to Temporary Storage ===');
-            const tempFilePath = await this.tempStorage.saveTempData(sessionId, {
-                type: 'profile',
-                target: username,
-                profile,
-                tweets
-            });
-            console.log('Temporary file saved at:', tempFilePath);
-
             // Save profile information
             console.log('\n=== Saving Profile Information ===');
             await this.db.saveProfile({
@@ -428,7 +418,7 @@ class TwitterScraper {
                 followers_count: parseInt(profile.followers) || 0,
                 following_count: parseInt(profile.following) || 0,
                 tweets_count: parseInt(profile.tweets) || 0
-            }, sessionId);
+            }, sessionId,source);
 
             // Save tweets with tracking
             console.log('\n=== Saving Tweets ===');
@@ -442,7 +432,7 @@ class TwitterScraper {
             for (const tweet of tweets) {
                 try {
                     console.log(`\nSaving tweet: ${tweet.url}`);
-                    await this.db.saveTweet(tweet, sessionId);
+                    await this.db.saveTweet(tweet, sessionId,source);
                     results.success++;
                     results.savedTweets.push(tweet.url);
                     console.log('Tweet saved successfully');
@@ -466,10 +456,10 @@ class TwitterScraper {
             if (isSuccessful) {
                 console.log('Scraping completed successfully, cleaning up temp file');
                 await this.tempStorage.deleteTempData(sessionId);
-                await this.db.completeScrapingSession(sessionId, results.success, 'completed');
+                await this.db.completeScrapingSession(sessionId, results.success, 'completed',source);
             } else {
                 console.log('Scraping had issues, keeping temp file for recovery');
-                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete');
+                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete',source);
             }
 
             console.log('Profile scrape results:', {
@@ -489,7 +479,7 @@ class TwitterScraper {
             console.error('\n=== Profile Scrape Failed ===');
             console.error('Error:', error.message);
             if (sessionId) {
-                await this.db.completeScrapingSession(sessionId, 0, 'failed');
+                await this.db.completeScrapingSession(sessionId, 0, 'failed',source);
                 console.log('Session marked as failed');
             }
             throw error;
@@ -583,7 +573,7 @@ class TwitterScraper {
             console.error('\n=== Search Scrape Failed ===');
             console.error('Error:', error.message);
             if (sessionId) {
-                await this.db.completeScrapingSession(sessionId, 0, 'failed');
+                await this.db.completeScrapingSession(sessionId, 0, 'failed',source);
                 console.log('Session marked as failed');
             }
             throw error;
@@ -631,7 +621,7 @@ class TwitterScraper {
             for (const tweet of tweets) {
                 try {
                     console.log(`\nSaving tweet: ${tweet.url}`);
-                    await this.db.saveTweet(tweet, sessionId);
+                    await this.db.saveTweet(tweet, sessionId,source);
                     results.success++;
                     console.log('Tweet saved successfully');
                 } catch (error) {
@@ -654,10 +644,10 @@ class TwitterScraper {
             if (isSuccessful) {
                 console.log('Scraping completed successfully, cleaning up temp file');
                 await this.tempStorage.deleteTempData(sessionId);
-                await this.db.completeScrapingSession(sessionId, results.success, 'completed');
+                await this.db.completeScrapingSession(sessionId, results.success, 'completed',source);
             } else {
                 console.log('Scraping had issues, keeping temp file for recovery');
-                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete');
+                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete',source);
             }
 
             console.log('Home timeline scrape results:', {
@@ -677,7 +667,7 @@ class TwitterScraper {
             console.error('\n=== Home Timeline Scrape Failed ===');
             console.error('Error:', error.message);
             if (sessionId) {
-                await this.db.completeScrapingSession(sessionId, 0, 'failed');
+                await this.db.completeScrapingSession(sessionId, 0, 'failed',source);
                 console.log('Session marked as failed');
             }
             throw error;
@@ -954,7 +944,7 @@ class TwitterScraper {
                 const firstTweet = tweets[0];
                 const profile = {
                     handle: target,
-                    name: firstTweet.user.name,
+                    name: firstTweet.user_name,
                     bio: firstTweet.user.bio || '',
                     followers_count: firstTweet.user.followers_count,
                     following_count: firstTweet.user.following_count,
@@ -982,7 +972,7 @@ class TwitterScraper {
                         tweet.metadata.encryptionDate = new Date().toISOString();
                     }
                     
-                    await this.db.saveTweet(tweet, sessionId);
+                    await this.db.saveTweet(tweet, sessionId,source);
                     savedCount++;
                     console.log(`Successfully saved tweet ${i + 1}`);
                 } catch (error) {
