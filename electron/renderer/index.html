@@ -780,42 +780,52 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 12px 24px;
-            border-radius: 4px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px 20px;
+            border-radius: 5px;
+            background: white;
+            color: #333;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             display: flex;
             align-items: center;
-            gap: 12px;
-            z-index: 1000;
-            animation: slide-in 0.3s ease-out;
+            gap: 10px;
+            z-index: 9999;
+            animation: slideIn 0.3s ease forwards;
         }
-
+        
         .notification.success {
-            border-left: 4px solid #4CAF50;
+            border-left: 4px solid #28a745;
         }
-
-        .notification.error {
-            border-left: 4px solid #f44336;
-        }
-
-        .notification i {
-            font-size: 20px;
-        }
-
+        
         .notification.success i {
-            color: #4CAF50;
+            color: #28a745;
         }
-
+        
+        .notification.error {
+            border-left: 4px solid #dc3545;
+        }
+        
         .notification.error i {
-            color: #f44336;
+            color: #dc3545;
         }
-
+        
+        .notification.info {
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .notification.info i {
+            color: #17a2b8;
+        }
+        
+        .notification i {
+            font-size: 1.2rem;
+        }
+        
         .notification.fade-out {
-            animation: slide-out 0.3s ease-in forwards;
+            animation: fadeOut 0.3s ease forwards;
         }
-
-        @keyframes slide-in {
+        
+        @keyframes slideIn {
             from {
                 transform: translateX(100%);
                 opacity: 0;
@@ -825,14 +835,12 @@
                 opacity: 1;
             }
         }
-
-        @keyframes slide-out {
+        
+        @keyframes fadeOut {
             from {
-                transform: translateX(0);
                 opacity: 1;
             }
             to {
-                transform: translateX(100%);
                 opacity: 0;
             }
         }
@@ -1714,6 +1722,157 @@
             background-color: #0f84c7;
         }
 
+        /* API Delegation Styles */
+        .status-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0 black;
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #dc3545;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .status-indicator.enabled {
+            background-color: #28a745;
+        }
+        
+        .status-text {
+            flex-grow: 1;
+        }
+        
+        .status-text p {
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+        
+        .info-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0 black;
+        }
+        
+        .info-box pre {
+            background: white;
+            padding: 10px;
+            border: 2px solid black;
+            overflow-x: auto;
+        }
+        
+        #apiDocsLink {
+            color: #0d6efd;
+            text-decoration: underline;
+        }
+        
+        /* API Activity Logs Styles */
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0 black;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-actions {
+            display: flex;
+            align-items: flex-end;
+            margin-left: auto;
+        }
+        
+        .api-logs-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0 black;
+        }
+        
+        .api-logs {
+            padding: 10px;
+        }
+        
+        .log-entry {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border: 2px solid black;
+            border-left: 6px solid #0066ff;
+        }
+        
+        .log-entry.success {
+            border-left-color: #28a745;
+        }
+        
+        .log-entry.error {
+            border-left-color: #dc3545;
+        }
+        
+        .log-entry-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .log-entry-path {
+            color: #0066ff;
+        }
+        
+        .log-entry-timestamp {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+        
+        .log-entry-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .log-entry-detail {
+            padding: 5px 10px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        
+        .log-entry-body {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        
+        .empty-state {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+        }
+
         /* Advanced Content Formatting Styles */
         .insight-content {
             line-height: 1.6;
@@ -2344,11 +2503,11 @@
         </div>
 
         <div class="tabs">
-            <div class="tab active" data-tab="scrape">Scrape Options</div>
+            <div class="tab active" data-tab="scrape">Scrape</div>
             <div class="tab" data-tab="history">Scraping History</div>
             <div class="tab" data-tab="auto-scrape">Auto Scraping</div>
-            <div class="tab" data-tab="chat">Chat Analysis</div>
-            <!-- <div class="tab" data-tab="query">Natural Query</div> -->
+            <div class="tab" data-tab="chat">Chat</div>
+            <div class="tab" data-tab="settings">Settings</div>
         </div>
 
         <div id="scrapeSection" class="tab-content active">
@@ -2641,9 +2800,87 @@
                 <div id="queryData" class="query-data"></div>
             </div>
         </div>
+
+        <!-- Add this new section for Settings after the other tab-content sections -->
+        <div id="settingsSection" class="tab-content">
+            <!-- API Delegation Settings -->
+            <div class="neo-card">
+                <h3 class="neo-title">API Delegation Settings</h3>
+                <p class="neo-description">Enable API delegation to allow external applications to use this scraper via HTTP requests.</p>
+                
+                <div class="status-container">
+                    <div class="status-indicator" id="delegationStatusIndicator"></div>
+                    <div class="status-text">
+                        <p>API Delegation: <span id="delegationStatus">Disabled</span></p>
+                        <p>Port: <span id="delegationPort">3000</span></p>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <button id="enableDelegationBtn" class="neo-button">Enable API Delegation</button>
+                    <button id="disableDelegationBtn" class="neo-button danger" style="display: none;">Disable API Delegation</button>
+                </div>
+                
+                <div class="info-box" id="delegationInfoBox" style="display: none;">
+                    <h4>API Usage Example</h4>
+                    <pre>
+curl -X POST http://localhost:<span id="apiPortExample">3000</span>/api/scrape/tweets \
+    -H "Content-Type: application/json" \
+    -d '{"query": "twitter scraper", "limit": 10}'
+                    </pre>
+                    <p>View complete <a href="#" id="apiDocsLink">API documentation</a></p>
+                </div>
+            </div>
+
+            <!-- API Activity Logs -->
+            <div class="neo-card">
+                <h3 class="neo-title">API Activity Logs</h3>
+                <p class="neo-description">View recent API requests made by external applications.</p>
+                
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label class="neo-label">Filter by endpoint:</label>
+                        <select id="logEndpointFilter" class="neo-select">
+                            <option value="">All endpoints</option>
+                            <option value="scrape/tweets">Tweets search</option>
+                            <option value="scrape/profile">Profile scraping</option>
+                            <option value="scrape/home">Home timeline</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="neo-label">Limit:</label>
+                        <select id="logLimit" class="neo-select">
+                            <option value="10">10 entries</option>
+                            <option value="50" selected>50 entries</option>
+                            <option value="100">100 entries</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button id="refreshLogsBtn" class="neo-button">Refresh Logs</button>
+                    </div>
+                </div>
+                
+                <div id="apiLogsContainer" class="api-logs-container">
+                    <div id="apiLogs" class="api-logs">
+                        <p class="empty-state">No API activity logs found. Logs will appear here when API requests are made.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
+        console.log('Initial load');
+        
+        // Debug check for the electronAPI object
+        console.log('window.electronAPI available:', !!window.electronAPI);
+        if (window.electronAPI) {
+            console.log('Available methods:', Object.keys(window.electronAPI));
+            console.log('getDelegationStatus available:', !!window.electronAPI.getDelegationStatus);
+            console.log('enableDelegation available:', !!window.electronAPI.enableDelegation);
+            console.log('disableDelegation available:', !!window.electronAPI.disableDelegation);
+        }
+
         let currentStatus = 'not_ready';
         
         // UI Elements
@@ -2664,6 +2901,7 @@
         const scrapeSection = document.getElementById('scrapeSection');
         const historySection = document.getElementById('historySection');
         const logoutButton = document.getElementById('logout-button');
+        const settingsSection = document.getElementById('settingsSection'); // Add this line
 
         // Auto-scraping UI elements
         const startAutoScrapeButton = document.getElementById('auto-scrape-button');
@@ -2739,6 +2977,8 @@
                     loadLLMConfig();
                 } else if (tab.dataset.tab === 'query') {
                     document.getElementById('querySection').classList.add('active');
+                } else if (tab.dataset.tab === 'settings') {
+                    document.getElementById('settingsSection').classList.add('active');
                 }
             });
         });
@@ -2875,7 +3115,7 @@
                                 <div class="session-info">
                                     <h3>${`@${session.target}`}</h3>
                                     <p class="session-date">${new Date(session.started_at).toLocaleString()}</p>
-                                </div>
+                    </div>
                                 <div class="session-actions">
                                     <button class="btn btn-primary download-btn" data-session-id="${session._id}">
                                         <i class="fas fa-download"></i> Download
@@ -2883,8 +3123,8 @@
                                     <button class="btn btn-danger delete-btn" data-session-id="${session._id}">
                                         <i class="fas fa-trash"></i> Delete
                                     </button>
-                                </div>
-                            </div>
+                    </div>
+                </div>
                             <div class="session-stats">
                                 <span class="stat"><i class="fas fa-tweet"></i> ${session.tweets_found} tweets</span>
                                 <span class="stat"><i class="fas fa-clock"></i> ${new Date(session.completed_at).toLocaleString()}</span>
@@ -2946,7 +3186,7 @@
                 historyResultsDiv.innerHTML = `
                     <div class="text-red-500">
                         Error loading stored tweets: ${error.message}
-                    </div>
+                </div>
                 `;
             }
         }
@@ -3152,7 +3392,7 @@
                         <div class="profile-info">
                             <div class="profile-username">${profile.type === 'profile' ? '@' + profile.target : 'Home Timeline'}</div>
                             <div class="profile-timestamp">Last scraped: ${profile.last_scraped_at ? new Date(profile.last_scraped_at).toLocaleString() : 'Never'}</div>
-                        </div>
+                </div>
                         <button class="remove-profile" data-type="${profile.type}" data-target="${profile.target}">Remove</button>
                     `;
                     profilesList.appendChild(profileDiv);
@@ -3645,10 +3885,10 @@
                                         <div class="account-item">
                                             <div class="account-handle">${handle}</div>
                                             <div class="account-description">${description.replace('.', '')}</div>
-                                        </div>
+                </div>
                                     `;
                                 }).join('')}
-                            </div>
+            </div>
                         </div>
                     `;
                 }
@@ -4182,7 +4422,7 @@
                 // Display results
                 if (response.results.length === 0) {
                     queryData.innerHTML = '<div class="no-results">No tweets found matching your query.</div>';
-                } else {
+                        } else {
                     queryData.innerHTML = response.results.map(tweet => `
                         <div class="tweet-result">
                             <div class="tweet-header">
@@ -4462,7 +4702,272 @@
             }
             
             // ... rest of your existing initialization code ...
+            
+            // Load delegation status
+            loadDelegationStatus();
         });
+
+        // API Delegation Controls
+        const delegationStatusIndicator = document.getElementById('delegationStatusIndicator');
+        const delegationStatus = document.getElementById('delegationStatus');
+        const delegationPort = document.getElementById('delegationPort');
+        const enableDelegationBtn = document.getElementById('enableDelegationBtn');
+        const disableDelegationBtn = document.getElementById('disableDelegationBtn');
+        const delegationInfoBox = document.getElementById('delegationInfoBox');
+        const apiPortExample = document.getElementById('apiPortExample');
+        const apiDocsPort = document.getElementById('apiDocsPort');
+        const apiDocsLink = document.getElementById('apiDocsLink');
+        
+        // Load delegation status on startup
+        async function loadDelegationStatus() {
+            try {
+                console.log('Loading delegation status...');
+                const status = await window.electronAPI.getDelegationStatus();
+                console.log('Delegation status loaded:', status);
+                updateDelegationUI(status);
+            } catch (error) {
+                console.error('Failed to load delegation status:', error);
+            }
+        }
+        
+        // Update UI based on delegation status
+        function updateDelegationUI(status) {
+            console.log('Updating delegation UI with status:', status);
+            const delegationStatusIndicator = document.getElementById('delegationStatusIndicator');
+            const delegationStatus = document.getElementById('delegationStatus');
+            const delegationPort = document.getElementById('delegationPort');
+            const enableDelegationBtn = document.getElementById('enableDelegationBtn');
+            const disableDelegationBtn = document.getElementById('disableDelegationBtn');
+            const delegationInfoBox = document.getElementById('delegationInfoBox');
+            const apiPortExample = document.getElementById('apiPortExample');
+            const apiDocsPort = document.getElementById('apiDocsPort');
+            const apiDocsLink = document.getElementById('apiDocsLink');
+            
+            if (status.enabled) {
+                delegationStatusIndicator.classList.add('enabled');
+                delegationStatus.textContent = 'Enabled';
+                enableDelegationBtn.style.display = 'none';
+                disableDelegationBtn.style.display = 'inline-block';
+                delegationInfoBox.style.display = 'block';
+            } else {
+                delegationStatusIndicator.classList.remove('enabled');
+                delegationStatus.textContent = 'Disabled';
+                enableDelegationBtn.style.display = 'inline-block';
+                disableDelegationBtn.style.display = 'none';
+                delegationInfoBox.style.display = 'none';
+            }
+            
+            // Update port information
+            delegationPort.textContent = status.port;
+            if (apiPortExample) apiPortExample.textContent = status.port;
+            if (apiDocsPort) apiDocsPort.textContent = status.port;
+            if (apiDocsLink) apiDocsLink.href = `http://localhost:${status.port}/api/docs`;
+        }
+        
+        // Setup event listeners for delegation buttons - called once on page load
+        function setupDelegationListeners() {
+            const enableDelegationBtn = document.getElementById('enableDelegationBtn');
+            const disableDelegationBtn = document.getElementById('disableDelegationBtn');
+            const apiDocsLink = document.getElementById('apiDocsLink');
+            
+            // Remove any existing listeners
+            enableDelegationBtn.replaceWith(enableDelegationBtn.cloneNode(true));
+            disableDelegationBtn.replaceWith(disableDelegationBtn.cloneNode(true));
+            
+            // Get fresh references after replacement
+            const newEnableBtn = document.getElementById('enableDelegationBtn');
+            const newDisableBtn = document.getElementById('disableDelegationBtn');
+            
+            // Enable delegation
+            newEnableBtn.addEventListener('click', async () => {
+                try {
+                    console.log('Enable delegation button clicked');
+                    const status = await window.electronAPI.enableDelegation();
+                    console.log('Delegation enabled result:', status);
+                    updateDelegationUI(status);
+                    
+                    // Show success message
+                    showNotification('API Delegation Enabled', 'success');
+                } catch (error) {
+                    console.error('Failed to enable delegation:', error);
+                    showNotification('Failed to enable API delegation: ' + error.message, 'error');
+                }
+            });
+            
+            // Disable delegation
+            newDisableBtn.addEventListener('click', async () => {
+                try {
+                    const status = await window.electronAPI.disableDelegation();
+                    updateDelegationUI(status);
+                    
+                    // Show success message
+                    showNotification('API Delegation Disabled', 'success');
+                } catch (error) {
+                    console.error('Failed to disable delegation:', error);
+                    showNotification('Failed to disable API delegation: ' + error.message, 'error');
+                }
+            });
+            
+            // API docs link
+            if (apiDocsLink) {
+                apiDocsLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const port = document.getElementById('delegationPort').textContent;
+                    window.open(`http://localhost:${port}/api/docs`, '_blank');
+                });
+            }
+        }
+
+        // Add API activity logs functionality
+        async function initApiLogs() {
+            const refreshLogsBtn = document.getElementById('refreshLogsBtn');
+            const logEndpointFilter = document.getElementById('logEndpointFilter');
+            const logLimit = document.getElementById('logLimit');
+            
+            // Initial load of logs
+            await loadApiLogs();
+            
+            // Add event listeners
+            refreshLogsBtn.addEventListener('click', loadApiLogs);
+            logEndpointFilter.addEventListener('change', loadApiLogs);
+            logLimit.addEventListener('change', loadApiLogs);
+        }
+        
+        async function loadApiLogs() {
+            try {
+                const apiLogsContainer = document.getElementById('apiLogs');
+                const logEndpointFilter = document.getElementById('logEndpointFilter');
+                const logLimit = document.getElementById('logLimit');
+                
+                // Show loading state
+                apiLogsContainer.innerHTML = '<p class="empty-state">Loading logs...</p>';
+                
+                // Get filter values
+                const filterPath = logEndpointFilter.value;
+                const limit = parseInt(logLimit.value) || 50;
+                
+                console.log('Loading API logs with options:', { limit, filterPath });
+                
+                // Check if the function exists
+                if (!window.electronAPI || typeof window.electronAPI.getApiLogs !== 'function') {
+                    console.error('getApiLogs function not available:', 
+                        window.electronAPI ? 'electronAPI exists but method missing' : 'electronAPI not found');
+                    apiLogsContainer.innerHTML = '<p class="empty-state">Error: API logs functionality not available. Please restart the application.</p>';
+                    return;
+                }
+                
+                // Get logs from main process
+                const options = {
+                    limit,
+                    filterByPath: filterPath || null
+                };
+                
+                console.log('Calling window.electronAPI.getApiLogs()...');
+                const result = await window.electronAPI.getApiLogs(options);
+                console.log('API logs result:', result);
+                
+                if (!result.success) {
+                    apiLogsContainer.innerHTML = `<p class="empty-state">Error loading logs: ${result.error}</p>`;
+                    return;
+                }
+                
+                if (!result.logs || result.logs.length === 0) {
+                    apiLogsContainer.innerHTML = '<p class="empty-state">No API activity logs found. Logs will appear here when API requests are made.</p>';
+                    return;
+                }
+                
+                // Build logs display
+                apiLogsContainer.innerHTML = '';
+                
+                result.logs.forEach(log => {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = `log-entry ${log.data.responseStatus < 400 ? 'success' : 'error'}`;
+                    
+                    // Format timestamp for display
+                    const timestamp = new Date(log.timestamp).toLocaleString();
+                    
+                    // Create log entry HTML
+                    logEntry.innerHTML = `
+                        <div class="log-entry-header">
+                            <div class="log-entry-path">${log.data.method} ${log.data.path}</div>
+                            <div class="log-entry-timestamp">${timestamp}</div>
+                        </div>
+                        <div class="log-entry-details">
+                            <div class="log-entry-detail">Status: ${log.data.responseStatus}</div>
+                            <div class="log-entry-detail">IP: ${log.data.ip}</div>
+                            <div class="log-entry-detail">Response time: ${log.data.responseTime}ms</div>
+                        </div>
+                    `;
+                    
+                    // Add request body if available
+                    if (log.data.body && Object.keys(log.data.body).length > 0) {
+                        const bodyElement = document.createElement('div');
+                        bodyElement.className = 'log-entry-body';
+                        bodyElement.textContent = JSON.stringify(log.data.body, null, 2);
+                        logEntry.appendChild(bodyElement);
+                    }
+                    
+                    apiLogsContainer.appendChild(logEntry);
+                });
+                
+            } catch (error) {
+                console.error('Error loading API logs:', error);
+                const apiLogsContainer = document.getElementById('apiLogs');
+                apiLogsContainer.innerHTML = `<p class="empty-state">Error loading logs: ${error.message}</p>`;
+            }
+        }
+
+        // Run initialization functions
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize everything needed on page load
+            updateStatus();
+            loadStoredTweets();
+            
+            // Get delegation status on page load
+            await loadDelegationStatus();
+            
+            // Setup delegation listeners
+            setupDelegationListeners();
+            
+            // Initialize API logs
+            await initApiLogs();
+        });
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            console.log(`Notification (${type}): ${message}`);
+            
+            // Create notification element
+            const notificationElement = document.createElement('div');
+            notificationElement.className = `notification ${type}`;
+            
+            // Set icon based on notification type
+            let icon = '';
+            if (type === 'success') {
+                icon = '<i class="fas fa-check-circle"></i>';
+            } else if (type === 'error') {
+                icon = '<i class="fas fa-exclamation-circle"></i>';
+            } else {
+                icon = '<i class="fas fa-info-circle"></i>';
+            }
+            
+            // Set content
+            notificationElement.innerHTML = `
+                ${icon}
+                <span>${message}</span>
+            `;
+            
+            // Add to document
+            document.body.appendChild(notificationElement);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notificationElement.classList.add('fade-out');
+                setTimeout(() => {
+                    notificationElement.remove();
+                }, 300);
+            }, 3000);
+        }
 
         // Function to set up goal progress listener
         function setupGoalProgressListener(conversationId) {

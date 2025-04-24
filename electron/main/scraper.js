@@ -381,7 +381,7 @@ class TwitterScraper {
         }
     }
 
-    async scrapeProfile(username, limit = 10) {
+    async scrapeProfile(username, limit = 10, source = 'app') {
         if (!this.isLoggedIn) {
             throw new Error('Not logged in to Twitter');
         }
@@ -392,7 +392,7 @@ class TwitterScraper {
             console.log('Username:', username);
             
             // Start a scraping session
-            sessionId = await this.db.startScrapingSession('profile', username);
+            sessionId = await this.db.startScrapingSession('profile', username,source);
             console.log('Session ID:', sessionId);
 
             await this.page.goto(`https://x.com/${username}`);
@@ -409,16 +409,6 @@ class TwitterScraper {
             const tweets = await this.extractTweets(limit);
             console.log(`Extracted ${tweets.length} tweets`);
 
-            // Save to temporary storage first
-            console.log('\n=== Saving to Temporary Storage ===');
-            const tempFilePath = await this.tempStorage.saveTempData(sessionId, {
-                type: 'profile',
-                target: username,
-                profile,
-                tweets
-            });
-            console.log('Temporary file saved at:', tempFilePath);
-
             // Save profile information
             console.log('\n=== Saving Profile Information ===');
             await this.db.saveProfile({
@@ -428,7 +418,7 @@ class TwitterScraper {
                 followers_count: parseInt(profile.followers) || 0,
                 following_count: parseInt(profile.following) || 0,
                 tweets_count: parseInt(profile.tweets) || 0
-            }, sessionId);
+            }, sessionId,source);
 
             // Save tweets with tracking
             console.log('\n=== Saving Tweets ===');
@@ -442,7 +432,7 @@ class TwitterScraper {
             for (const tweet of tweets) {
                 try {
                     console.log(`\nSaving tweet: ${tweet.url}`);
-                    await this.db.saveTweet(tweet, sessionId);
+                    await this.db.saveTweet(tweet, sessionId,source);
                     results.success++;
                     results.savedTweets.push(tweet.url);
                     console.log('Tweet saved successfully');
@@ -454,7 +444,7 @@ class TwitterScraper {
 
             // Verify database updates
             console.log('\n=== Verifying Database Updates ===');
-            const dbTweets = await this.db.getTweetsBySession(sessionId);
+            const dbTweets = await this.db.getTweetsBySession(sessionId,source);
             console.log('Database verification results:');
             console.log('- Expected tweets:', results.success);
             console.log('- Found tweets:', dbTweets.length);
@@ -466,10 +456,10 @@ class TwitterScraper {
             if (isSuccessful) {
                 console.log('Scraping completed successfully, cleaning up temp file');
                 await this.tempStorage.deleteTempData(sessionId);
-                await this.db.completeScrapingSession(sessionId, results.success, 'completed');
+                await this.db.completeScrapingSession(sessionId, results.success, 'completed',source);
             } else {
                 console.log('Scraping had issues, keeping temp file for recovery');
-                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete');
+                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete',source);
             }
 
             console.log('Profile scrape results:', {
@@ -489,14 +479,14 @@ class TwitterScraper {
             console.error('\n=== Profile Scrape Failed ===');
             console.error('Error:', error.message);
             if (sessionId) {
-                await this.db.completeScrapingSession(sessionId, 0, 'failed');
+                await this.db.completeScrapingSession(sessionId, 0, 'failed',source);
                 console.log('Session marked as failed');
             }
             throw error;
         }
     }
 
-    async scrapeTweets(query, limit = 10) {
+    async scrapeTweets(query, limit = 10, source = 'app') {
         if (!this.isLoggedIn) {
             throw new Error('Not logged in to Twitter');
         }
@@ -507,7 +497,7 @@ class TwitterScraper {
             console.log('Query:', query);
             
             // Start a scraping session
-            sessionId = await this.db.startScrapingSession('search', query);
+            sessionId = await this.db.startScrapingSession('search', query,source);
             console.log('Session ID:', sessionId);
             
             await this.page.goto(`https://x.com/search?q=${encodeURIComponent(query)}&f=live`);
@@ -537,7 +527,7 @@ class TwitterScraper {
             for (const tweet of tweets) {
                 try {
                     console.log(`\nSaving tweet: ${tweet.url}`);
-                    await this.db.saveTweet(tweet, sessionId);
+                    await this.db.saveTweet(tweet, sessionId, source);
                     results.success++;
                     console.log('Tweet saved successfully');
                 } catch (error) {
@@ -548,7 +538,7 @@ class TwitterScraper {
 
             // Verify database update and cleanup temp file
             console.log('\n=== Verifying Database Update ===');
-            const dbTweets = await this.db.getTweetsBySession(sessionId);
+            const dbTweets = await this.db.getTweetsBySession(sessionId,source);
             console.log('Database verification results:');
             console.log('- Expected tweets:', results.success);
             console.log('- Found tweets:', dbTweets.length);
@@ -560,10 +550,10 @@ class TwitterScraper {
             if (isSuccessful) {
                 console.log('Scraping completed successfully, cleaning up temp file');
                 await this.tempStorage.deleteTempData(sessionId);
-                await this.db.completeScrapingSession(sessionId, results.success, 'completed');
+                await this.db.completeScrapingSession(sessionId, results.success, 'completed',source);
             } else {
                 console.log('Scraping had issues, keeping temp file for recovery');
-                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete');
+                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete',source);
             }
 
             console.log('Search scrape results:', {
@@ -583,14 +573,14 @@ class TwitterScraper {
             console.error('\n=== Search Scrape Failed ===');
             console.error('Error:', error.message);
             if (sessionId) {
-                await this.db.completeScrapingSession(sessionId, 0, 'failed');
+                await this.db.completeScrapingSession(sessionId, 0, 'failed',source);
                 console.log('Session marked as failed');
             }
             throw error;
         }
     }
 
-    async scrapeHomeTimeline(targetTweetCount = 100) {
+    async scrapeHomeTimeline(targetTweetCount = 100, source = 'app') {
         if (!this.isLoggedIn) {
             throw new Error('Not logged in to Twitter');
         }
@@ -600,7 +590,7 @@ class TwitterScraper {
             console.log('\n=== Starting Home Timeline Scrape ===');
             
             // Start a scraping session
-            sessionId = await this.db.startScrapingSession('home', 'timeline');
+            sessionId = await this.db.startScrapingSession('home', 'timeline',source);
             console.log('Session ID:', sessionId);
 
             await this.page.goto('https://x.com/home');
@@ -631,7 +621,7 @@ class TwitterScraper {
             for (const tweet of tweets) {
                 try {
                     console.log(`\nSaving tweet: ${tweet.url}`);
-                    await this.db.saveTweet(tweet, sessionId);
+                    await this.db.saveTweet(tweet, sessionId,source);
                     results.success++;
                     console.log('Tweet saved successfully');
                 } catch (error) {
@@ -642,7 +632,7 @@ class TwitterScraper {
 
             // Verify database updates
             console.log('\n=== Verifying Database Updates ===');
-            const dbTweets = await this.db.getTweetsBySession(sessionId);
+            const dbTweets = await this.db.getTweetsBySession(sessionId,source);
             console.log('Database verification results:');
             console.log('- Expected tweets:', results.success);
             console.log('- Found tweets:', dbTweets.length);
@@ -654,10 +644,10 @@ class TwitterScraper {
             if (isSuccessful) {
                 console.log('Scraping completed successfully, cleaning up temp file');
                 await this.tempStorage.deleteTempData(sessionId);
-                await this.db.completeScrapingSession(sessionId, results.success, 'completed');
+                await this.db.completeScrapingSession(sessionId, results.success, 'completed',source);
             } else {
                 console.log('Scraping had issues, keeping temp file for recovery');
-                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete');
+                await this.db.completeScrapingSession(sessionId, results.success, 'incomplete',source);
             }
 
             console.log('Home timeline scrape results:', {
@@ -677,7 +667,7 @@ class TwitterScraper {
             console.error('\n=== Home Timeline Scrape Failed ===');
             console.error('Error:', error.message);
             if (sessionId) {
-                await this.db.completeScrapingSession(sessionId, 0, 'failed');
+                await this.db.completeScrapingSession(sessionId, 0, 'failed',source);
                 console.log('Session marked as failed');
             }
             throw error;
@@ -935,15 +925,17 @@ class TwitterScraper {
         }
     }
 
-    async saveTweets(tweets, type, target) {
+    async saveTweets(tweets, type, target, source = 'app', publicKey = null) {
         try {
             console.log('=== Starting Tweet Storage Process ===');
             console.log(`Type: ${type}`);
             console.log(`Target: ${target}`);
+            console.log(`Source: ${source}`);
+            console.log(`Encryption: ${publicKey ? 'Yes' : 'No'}`);
             console.log(`Total tweets to save: ${tweets.length}`);
             
             // Start a new scraping session
-            const sessionId = await this.db.startScrapingSession(type, target);
+            const sessionId = await this.db.startScrapingSession(type, target, source, publicKey);
             console.log(`Created scraping session with ID: ${sessionId}`);
 
             // If this is a profile scrape, save the profile information first
@@ -952,7 +944,7 @@ class TwitterScraper {
                 const firstTweet = tweets[0];
                 const profile = {
                     handle: target,
-                    name: firstTweet.user.name,
+                    name: firstTweet.user_name,
                     bio: firstTweet.user.bio || '',
                     followers_count: firstTweet.user.followers_count,
                     following_count: firstTweet.user.following_count,
@@ -972,7 +964,15 @@ class TwitterScraper {
                 try {
                     console.log(`\nProcessing tweet ${i + 1}/${tweets.length}`);
                     console.log(`URL: ${tweet.url}`);
-                    await this.db.saveTweet(tweet, sessionId);
+                    
+                    // For API requests with encryption, add encryption metadata
+                    if (source === 'api' && publicKey) {
+                        tweet.metadata = tweet.metadata || {};
+                        tweet.metadata.encrypted = true;
+                        tweet.metadata.encryptionDate = new Date().toISOString();
+                    }
+                    
+                    await this.db.saveTweet(tweet, sessionId,source);
                     savedCount++;
                     console.log(`Successfully saved tweet ${i + 1}`);
                 } catch (error) {
@@ -992,7 +992,9 @@ class TwitterScraper {
             await this.db.completeScrapingSession(
                 sessionId,
                 savedCount,
-                status
+                status,
+                source,
+                !!publicKey
             );
 
             console.log('=== Storage Process Complete ===');
@@ -1001,7 +1003,9 @@ class TwitterScraper {
                 sessionId,
                 savedCount,
                 errorCount,
-                status
+                status,
+                source,
+                encrypted: !!publicKey
             };
         } catch (error) {
             console.error('=== Storage Process Failed ===');
@@ -1010,6 +1014,16 @@ class TwitterScraper {
             throw error;
         }
     }
-}
+
+
+    async getTweetsBySession(sessionId,source) {
+        try {
+            console.log('Getting tweets for session:', sessionId);
+            return await this.db.getTweetsBySession(sessionId,source);
+        } catch (error) {
+            console.error('Error getting tweets for session:', error);
+            throw error;
+        }
+    }}
 
 module.exports = TwitterScraper; 

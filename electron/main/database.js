@@ -105,10 +105,10 @@ class TweetDatabase {
         }
     }
 
-    async saveTweet(tweet, sessionId, temp_delete = false) {
+    async saveTweet(tweet, sessionId, source = 'app') {
         try {
             debugLog('\n=== Starting Tweet Save ===');
-            debugLog('Tweet:', { url: tweet.url, sessionId, temp_delete });
+            debugLog('Tweet:', { url: tweet.url, sessionId });
             
             // Extract tweet ID from URL
             const tweet_id = tweet.url.split('/status/')[1]?.split('?')[0];
@@ -117,10 +117,13 @@ class TweetDatabase {
             }
             debugLog('Extracted tweet_id:', tweet_id);
 
-            // Save to session's temp file
-            const tempFileName = `session_${sessionId}.json`;
-            const tempFilePath = path.join(this.tempDir, tempFileName);
-            const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            let localSessionPath;
+            if(source === 'app') {
+                localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            } else if(source === 'api') {
+                localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+            }
+
 
             // Use a lock file to prevent concurrent writes
             const lockFile = localSessionPath + '.lock';
@@ -259,14 +262,19 @@ class TweetDatabase {
         }
     }
 
-    async saveProfile(profile, sessionId) {
+    async saveProfile(profile, sessionId, source = 'app') {
         try {
             console.log('\n=== Saving Profile ===');
             console.log('Profile:', JSON.stringify(profile, null, 2));
             console.log('Session ID:', sessionId);
 
             const now = new Date();
-            const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            let localSessionPath;
+            if(source === 'app') {
+                localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+            } else if(source === 'api') {
+                localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+            }
             
             // Use a lock file to prevent concurrent writes
             const lockFile = localSessionPath + '.lock';
@@ -411,11 +419,13 @@ class TweetDatabase {
         }
     }
 
-    async startScrapingSession(type, target) {
+    async startScrapingSession(type, target, source = 'app', publicKey = null) {
         try {
             console.log('\n=== Starting Scraping Session ===');
             console.log('Type:', type);
             console.log('Target:', target);
+            console.log('Source:', source);
+            console.log('Encryption:', publicKey ? 'Yes' : 'No');
 
             // Ensure target is never undefined
             const sessionTarget = target || 'twitter';
@@ -426,6 +436,8 @@ class TweetDatabase {
                 (await this.db.collection(this.collections.SESSIONS).insertOne({
                     scrape_type: sessionType,
                     target: sessionTarget,
+                    source: source,
+                    encrypted: !!publicKey,
                     status: 'in_progress',
                     started_at: new Date(),
                     created_at: new Date(),
@@ -441,14 +453,23 @@ class TweetDatabase {
                     session_id: sessionId,
                     scrape_type: sessionType,
                     target: sessionTarget,
+                    source: source,
+                    encrypted: !!publicKey,
                     status: 'in_progress',
                     started_at: new Date().toISOString(),
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                     tweets: []
                 };
-
-                const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                let localSessionPath;
+                if(source === 'app') 
+                    {
+                     localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                    }
+                    else {
+                        localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+                    }
+                
                 await fsPromises.writeFile(localSessionPath, JSON.stringify(sessionData, null, 2));
                 console.log('Created local session file:', localSessionPath);
             }
@@ -462,12 +483,14 @@ class TweetDatabase {
         }
     }
 
-    async completeScrapingSession(sessionId, tweetsFound, status = 'completed') {
+    async completeScrapingSession(sessionId, tweetsFound, status = 'completed', source = 'app', encrypted = false) {
         try {
             console.log('\n=== Updating Scraping Session Status ===');
             console.log('Session ID:', sessionId);
             console.log('Tweets Found:', tweetsFound);
             console.log('Requested Status:', status);
+            console.log('Source:', source);
+            console.log('Encrypted:', encrypted);
 
             if (this.shareData) {
                 // Only connect to database if data sharing is enabled
@@ -496,6 +519,8 @@ class TweetDatabase {
                     completed_at: new Date(),
                     tweets_found: tweetsFound,
                     status: finalStatus,
+                    source: source,
+                    encrypted: encrypted,
                     updated_at: new Date()
                 };
 
@@ -519,18 +544,28 @@ class TweetDatabase {
                 console.log('\n=== Final Session State ===');
                 console.log('- Status:', updatedSession.status);
                 console.log('- Tweets Found:', updatedSession.tweets_found);
+                console.log('- Source:', updatedSession.source);
+                console.log('- Encrypted:', updatedSession.encrypted);
                 console.log('- Completed At:', updatedSession.completed_at);
 
                 return result.modifiedCount > 0;
             } else {
                 // For local storage, just update the local session file
-                const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                let localSessionPath;
+                if(source === 'app') {
+                    localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                }
+                else {
+                    localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+                }
                 const sessionData = JSON.parse(await fsPromises.readFile(localSessionPath, 'utf8'));
                 
                 // Update session status
                 sessionData.status = status;
                 sessionData.completed_at = new Date().toISOString();
                 sessionData.tweets_found = tweetsFound;
+                sessionData.source = source;
+                sessionData.encrypted = encrypted;
                 sessionData.updated_at = new Date().toISOString();
                 
                 // Save updated session data
@@ -773,7 +808,7 @@ class TweetDatabase {
         return { sessionsByDate: sortedSessionsByDate };
     }
 
-    async getTweetsBySession(sessionId) {
+    async getTweetsBySession(sessionId, source = 'app') {
         try {
             console.log('\n=== Getting Tweets by Session ===');
             console.log('Session ID:', sessionId);
@@ -790,7 +825,14 @@ class TweetDatabase {
                 return tweets;
             } else {
                 // For local storage, read from the session file
-                const localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                let localSessionPath;
+                if(source === 'app') {
+                     localSessionPath = path.join(this.localDataDir, `session_${sessionId}.json`);
+                }
+                else {
+                    localSessionPath = path.join(this.localDataDir, `sessionapi_${sessionId}.json`);
+                }
+                
                 const sessionData = JSON.parse(await fsPromises.readFile(localSessionPath, 'utf8'));
                 
                 console.log(`Found ${sessionData.tweets.length} tweets in local session`);

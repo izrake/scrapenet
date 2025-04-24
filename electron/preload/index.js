@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     clearStoredTweets: () => ipcRenderer.invoke('clear-stored-tweets'),
     clearTwitterSession: () => ipcRenderer.invoke('clear-twitter-session'),
     
+    // API delegation methods
+    getDelegationStatus: () => ipcRenderer.invoke('get-delegation-status'),
+    enableDelegation: () => ipcRenderer.invoke('enable-delegation'),
+    disableDelegation: () => ipcRenderer.invoke('disable-delegation'),
+    getApiLogs: (options) => ipcRenderer.invoke('get-api-logs', options),
+    
     // Download functionality
     downloadAllTweets: () => ipcRenderer.invoke('download-all-tweets'),
     downloadTweetsBySession: (sessionId) => ipcRenderer.invoke('download-tweets-by-session', sessionId),
