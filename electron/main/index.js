@@ -121,6 +121,7 @@ async function createMainWindow() {
 
     // Initialize core services
     scraper = new TwitterScraper();
+    global.scraper = scraper;
     apiServer = new APIServer(scraper);
     dataStore = new DataStore();
     db = new TweetDatabase();
