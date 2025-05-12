@@ -473,7 +473,8 @@ class TwitterScraper {
                 sessionId,
                 tweetsFound: results.success,
                 failed: results.failed,
-                status: isSuccessful ? 'completed' : 'incomplete'
+                status: isSuccessful ? 'completed' : 'incomplete',
+                tweets: dbTweets
             };
         } catch (error) {
             console.error('\n=== Profile Scrape Failed ===');
@@ -567,7 +568,8 @@ class TwitterScraper {
                 sessionId,
                 tweetsFound: results.success,
                 failed: results.failed,
-                status: isSuccessful ? 'completed' : 'incomplete'
+                status: isSuccessful ? 'completed' : 'incomplete',
+                tweets: dbTweets
             };
         } catch (error) {
             console.error('\n=== Search Scrape Failed ===');
@@ -661,7 +663,8 @@ class TwitterScraper {
                 sessionId,
                 tweetsFound: results.success,
                 failed: results.failed,
-                status: isSuccessful ? 'completed' : 'incomplete'
+                status: isSuccessful ? 'completed' : 'incomplete',
+                tweets: dbTweets
             };
         } catch (error) {
             console.error('\n=== Home Timeline Scrape Failed ===');

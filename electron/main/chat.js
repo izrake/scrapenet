@@ -633,13 +633,78 @@ class ChatManager {
 
                 IMPORTANT GUIDELINES:
                 - Be specific and clear about what you'll analyze
-                - Focus only on Twitter data analysis goals
+                - Focus on Twitter data analysis and data collection goals
                 - Keep explanations concise but informative
                 - Make sure goals are sequential and build on each other
                 - Limit to 2-4 goals maximum
                 - If the query is very simple, still break it into at least 2 logical steps
                 - Do not reference any UI elements or technical implementation details
-                `
+                - For queries about scraping the home timeline, make the first goal "Scrape your home timeline" followed by analysis goals
+                - When scraping is needed, always make it the first goal before analysis
+                - Always place numbers of tweets on goal 1 & never put it on goal 2 or more
+                - If query is take a look at the first 100, 200 etc then make the first goal "Scrape the first 100, 200 etc tweets"
+                - If query is something like look into [username] or [username]'s tweets then make the first goal "Scrape profile [username]'s tweets"
+                - If query contains twitter username or if you identify a username then make the first goal "Scrape profile [username]'s tweets"
+                - If the query is about scraping tweets, make the first goal "Scrape tweets" followed by user specific goals
+                - If the query is about scraping tweets from a specific user, make the first goal "Scrape profile [username]'s tweets" followed by user specific goals
+                - If query contains "local session", "local storage", "saved tweets", or similar terms, make the first goal "Analyze local session tweets" followed by user provided goals
+                - For local session queries, do not include scraping goals since the data is already available locally
+
+                GOAL FORMATTING RULES:
+                1. For home timeline scraping:
+                   - Use exactly: "Scrape your home timeline"
+                   - Add tweet count if specified: "Scrape your home timeline (100 tweets)"
+
+                2. For profile scraping:
+                   - Use exactly: "Scrape profile [username]'s tweets"
+                   - Include @ symbol if present in query: "Scrape profile @[username]'s tweets"
+                   - Add tweet count if specified: "Scrape profile [username]'s tweets (50 tweets)"
+
+                3. For search query scraping:
+                   - Use exactly: "Scrape tweets about [query]"
+                   - Add tweet count if specified: "Scrape tweets about [query] (100 tweets)"
+
+                4. For local session analysis:
+                   - Use exactly: "Analyze local session tweets"
+                   - Add specific focus if mentioned: "Analyze local session tweets for [specific focus]"
+                   - Do not include tweet count since we're analyzing existing data
+
+                5. For analysis goals:
+                   - Start with action verb: "Analyze", "Identify", "Compare", etc.
+                   - Be specific about what to analyze
+                   - Reference the data source: "Analyze the scraped tweets for..." or "Analyze the local session tweets for..."
+                   - Keep under 100 characters
+
+                EXAMPLES:
+                Query: "Show me the first 200 tweets from @elonmusk"
+                Goals:
+                1. Scrape profile @elonmusk's tweets (200 tweets)
+                2. Analyze the most common topics in Elon's tweets
+                3. Identify the most engaging tweets based on metrics
+
+                Query: "What's trending in my home feed?"
+                Goals:
+                1. Scrape your home timeline (100 tweets)
+                2. Identify trending topics and hashtags
+                3. Analyze engagement patterns for trending content
+
+                Query: "Find tweets about AI from last week"
+                Goals:
+                1. Scrape tweets about AI (100 tweets)
+                2. Analyze the sentiment of AI-related tweets
+                3. Identify key influencers in the AI discussion
+
+                Query: "Look into my local session tweets about tech"
+                Goals:
+                1. Analyze local session tweets for tech-related content
+                2. Identify key tech topics and trends
+                3. Analyze engagement metrics for tech tweets
+
+                Query: "What's in my saved tweets about startups?"
+                Goals:
+                1. Analyze local session tweets about startups
+                2. Identify common startup-related themes
+                3. Compare engagement patterns across startup tweets`
             };
 
             const userPrompt = {
@@ -663,15 +728,108 @@ class ChatManager {
         }
     }
 
-    async executeGoal(goal, tweets, originalQuery) {
+    async executeGoal(goal, tweets, originalQuery, conversation) {
         console.log(`Executing goal: ${goal}`);
         
+        // Check for different types of scraping goals
+        const isHomeTimelineScrape = goal.toLowerCase().includes('home timeline') || 
+                                   goal.toLowerCase().includes('home feed') ||
+                                   goal.toLowerCase().includes('timeline scrape');
+                                   
+        const isProfileScrape = goal.toLowerCase().includes('scrape tweets from') ||
+                              goal.toLowerCase().includes('scrape profile') ||
+                              goal.toLowerCase().includes('scrape user') || 
+                              goal.toLowerCase().includes('profile') ||
+                              goal.toLowerCase().includes('scrape profile') ||
+                              goal.toLowerCase().includes('scrape user') ||
+                              goal.toLowerCase().includes('user');
+                              
+        const isQueryScrape = goal.toLowerCase().includes('scrape tweets') &&
+                            !isHomeTimelineScrape && !isProfileScrape;
+
+        const isLocalSessionScrape = goal.toLowerCase().includes('local session') ||
+                                    goal.toLowerCase().includes('local storage') ||
+                                    goal.toLowerCase().includes('saved tweets');
+                                   
+        if ((isHomeTimelineScrape || isProfileScrape || isQueryScrape || isLocalSessionScrape) && !conversation.scrapped) {
+            console.log('Detected scraping goal, executing scraper...');
+            try {
+                // Get scraper instance
+                const scraper = global.scraper;
+                if (!scraper) {
+                    console.error('Twitter scraper not found in global scope');
+                    return 'Failed to scrape: Twitter scraper not initialized. Please try logging in first.';
+                }
+                
+                // Check if logged in
+                if (!scraper.isLoggedIn && !isLocalSessionScrape) {
+                    console.error('Twitter scraper not logged in');
+                    return 'Failed to scrape: Not logged in to Twitter. Please log in first.';
+                }
+
+                // Extract tweet count from original query
+                let tweetCount = 100; // Default count
+                const countMatch = goal.match(/(\d+)\s*(tweets|posts)/i);
+                if (countMatch) {
+                    const requestedCount = parseInt(countMatch[1]);
+                    if (!isNaN(requestedCount) && requestedCount > 0) {
+                        tweetCount = Math.min(requestedCount, 1000); // Cap at 1000 tweets
+                    }
+                }
+                
+                let result;
+                
+                if (isHomeTimelineScrape) {
+                    console.log(`Scraping ${tweetCount} tweets from home timeline...`);
+                    result = await scraper.scrapeHomeTimeline(tweetCount);
+                } else if (isProfileScrape) {
+                    // Extract username from goal using improved regex
+                    const usernameMatch = goal.match(/(?:profile|from|user|tweets?)\s+@?([a-zA-Z0-9_]+)(?:'s)?/i);
+                    if (!usernameMatch) {
+                        return 'Failed to scrape profile: No username specified. Please provide a valid Twitter username.';
+                    }
+                    const username = usernameMatch[1];
+                    console.log(`Scraping ${tweetCount} tweets from profile @${username}...`);
+                    result = await scraper.scrapeProfile(username, tweetCount);
+                } else if (isQueryScrape) {
+                    // Extract search query from goal
+                    const queryMatch = goal.match(/scrape tweets\s+(.+)/i);
+                    if (!queryMatch) {
+                        return 'Failed to scrape tweets: No search query specified. Please provide a valid search query.';
+                    }
+                    const searchQuery = queryMatch[1];
+                    console.log(`Scraping ${tweetCount} tweets for query "${searchQuery}"...`);
+                    result = await scraper.scrapeTweets(searchQuery, tweetCount);
+                }
+                else{
+                    // Extract specific focus from goal
+                    conversation.context.tweets = tweets;
+                    conversation.scrapped = true;
+                    return `Successfully scraped ${tweets.length} tweets. ` +
+                       `0 tweets failed to save. ` +
+                       `Status: completed`;
+                }
+                
+                // Store scraped tweets in conversation context
+                conversation.context.tweets = result.tweets;
+                conversation.scrapped = true;
+                
+                return `Successfully scraped ${result.tweetsFound} tweets. ` +
+                       `${result.failed} tweets failed to save. ` +
+                       `Status: ${result.status}`;
+            } catch (error) {
+                console.error('Error scraping:', error);
+                return `Failed to scrape: ${error.message}. Please ensure you are logged in to Twitter.`;
+            }
+        }
+        
+        // For non-scraping goals, proceed with normal LLM analysis
         const systemPrompt = {
             role: 'system',
-            content: `You are an AI assistant analyzing Twitter data. You're currently executing a specific user provided goal.
+            content: `You are an AI assistant for the user. You're currently executing a specific user provided goal.
                       
-                      Focus only on completing the current goal. Be thorough yet concise in your analysis.
-                      Use specific examples from the provided tweets.
+                      Focus only on completing the current goal. Be thorough yet concise in your output.
+                      Use specific examples from the provided data.
                       Format your response well with headings, bullet points, and paragraphs as appropriate.
                       
                       Original user query: ${originalQuery}
@@ -680,9 +838,10 @@ class ChatManager {
 
         const userPrompt = {
             role: 'user',
-            content: `Complete this analysis goal using these tweets: ${JSON.stringify(tweets.slice(0, 50))}`
+            content: `Complete this user provided goal using these tweets: ${JSON.stringify(tweets.slice(0, conversation.context.tweetCount))}`
         };
 
+        console.log('Sending query to LLM with message length:', `${JSON.stringify(tweets.slice(0, conversation.context.tweetCount))}`);
         const result = await this.queryLLM([systemPrompt, userPrompt]);
         console.log('Goal execution result length:', result ? result.length : 0);
         
@@ -713,6 +872,7 @@ class ChatManager {
                         conversation.state = 'executing_goals';
                         conversation.context.currentGoalIndex = 0;
                         conversation.context.originalQuery = query;
+                        conversation.scrapped=false;
                         
                         // Execute natural query to get tweets for analysis
                         console.log('Getting tweets for goal execution...');
@@ -748,7 +908,8 @@ class ChatManager {
                             const goalResult = await this.executeGoal(
                                 conversation.context.goals[i], 
                                 conversation.context.tweets,
-                                conversation.context.originalQuery
+                                conversation.context.originalQuery,
+                                conversation
                             );
                             
                             // Store the result

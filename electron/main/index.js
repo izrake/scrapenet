@@ -121,6 +121,7 @@ async function createMainWindow() {
 
     // Initialize core services
     scraper = new TwitterScraper();
+    global.scraper = scraper;
     apiServer = new APIServer(scraper);
     dataStore = new DataStore();
     db = new TweetDatabase();
@@ -255,7 +256,9 @@ ipcMain.handle('start-twitter-auth', async () => {
         // Check license validity first
         const licenseCheck = await licenseManager.isLicenseValid();
         if (!licenseCheck.success) {
-            throw new Error(licenseCheck.message);
+            // Create license window instead of throwing error
+            await createLicenseWindow();
+            return { status: 'error', message: licenseCheck.message, redirectToLicense: true };
         }
 
         if (!scraper) {
